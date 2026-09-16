@@ -1,0 +1,119 @@
+{
+  "type": "13-omens-character",
+  "version": 1,
+  "exportedAt": "2026-09-13T19:51:58.563Z",
+  "character": {
+    "id": "c047d24d-3345-4624-bd1b-a9bfcae09fa8",
+    "name": "Jasper",
+    "archetype": "",
+    "description": "",
+    "notes": "",
+    "aspects": [
+      {
+        "id": "courage",
+        "type": "core",
+        "name": "Courage",
+        "rating": "Good",
+        "strained": false
+      },
+      {
+        "id": "evade",
+        "type": "core",
+        "name": "Evade",
+        "rating": "Average",
+        "strained": false
+      },
+      {
+        "id": "fight",
+        "type": "core",
+        "name": "Fight",
+        "rating": "Bad",
+        "strained": false
+      },
+      {
+        "id": "luck",
+        "type": "core",
+        "name": "Luck",
+        "rating": "Average",
+        "strained": false
+      },
+      {
+        "id": "perception",
+        "type": "core",
+        "name": "Perception",
+        "rating": "Average",
+        "strained": false
+      },
+      {
+        "id": "story-1",
+        "type": "story",
+        "name": "Occultism",
+        "rating": "Great",
+        "strained": false
+      },
+      {
+        "id": "story-2",
+        "type": "story",
+        "name": "Story Aspect 2",
+        "rating": "Average",
+        "strained": false
+      },
+      {
+        "id": "story-3",
+        "type": "story",
+        "name": "Story Aspect 3",
+        "rating": "Average",
+        "strained": false
+      },
+      {
+        "id": "story-4",
+        "type": "story",
+        "name": "Story Aspect 4",
+        "rating": "Average",
+        "strained": false
+      },
+      {
+        "id": "story-5",
+        "type": "story",
+        "name": "Story Aspect 5",
+        "rating": "Average",
+        "strained": false
+      }
+    ],
+    "perkUsage": {},
+    "perks": [
+      {
+        "id": "4ef14dc3-8ab2-4e37-a012-9fd224895ddf",
+        "name": "Bossy",
+        "notes": "",
+        "ruleKey": "bossy",
+        "disabled": false
+      }
+    ],
+    "gear": [
+      {
+        "id": "d95b354f-6350-48c2-9536-2f591dd7ccd7",
+        "name": "Flashlight",
+        "notes": ""
+      }
+    ],
+    "strainReliefUsed": false,
+    "wounds": 0,
+    "active": true,
+    "cheatDeathUsed": false,
+    "safeDiceLost": 0,
+    "strain": {
+      "courage": 0,
+      "evade": 0,
+      "fight": 0,
+      "luck": 0,
+      "perception": 0,
+      "story-1": 0,
+      "story-2": 0,
+      "story-3": 0,
+      "story-4": 0,
+      "story-5": 0
+    },
+    "statusMessage": ""
+  }
+}

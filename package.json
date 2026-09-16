@@ -1,0 +1,27 @@
+{
+  "name": "13-omens-virtual-dice-bag",
+  "version": "0.1.0",
+  "private": true,
+  "description": "13 Omens solo dice bag and server-authoritative multiplayer",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "discord": "node discord/bot.js",
+    "discord:deploy": "node discord/deploy-commands.js",
+    "discord:deploy-global": "node discord/deploy-global-commands.js",
+    "test": "node tests/rules.test.js && node tests/state.test.js && node tests/ui.test.js && node tests/multiplayer.test.js && node tests/network-client.test.js && node tests/checks.test.js && node tests/pass3.test.js && node tests/perks.test.js && node tests/character-edit.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+    "express": "5.2.1",
+    "socket.io": "4.8.3"
+  },
+  "devDependencies": {
+    "socket.io-client": "4.8.3"
+  }
+}
