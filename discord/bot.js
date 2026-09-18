@@ -25,6 +25,8 @@ const {
 const {
   importCharacterIntoCampaign,
   findCharacterByName,
+  getCharacterOwnerId,
+  setCharacterOwner,
   exportCharacter,
   characterFilename
 } = require("./character-manager");
@@ -48,7 +50,8 @@ const ThirteenOmensRules =
   require("../js/rules.js");
 
 const db =
-  require("./database");  
+  require("./database");
+
 
 // ====================================================
 // Constants
@@ -720,7 +723,7 @@ function getCharacterAssignedToUser(
 }
 
 
-function canControlCharacter(
+function canManageCharacter(
   campaign,
   character,
   discordUserId
@@ -737,6 +740,38 @@ function canControlCharacter(
 
   }
 
+
+  // --------------------------------------------------
+  // Owned characters
+  // --------------------------------------------------
+
+  const ownerDiscordId =
+    getCharacterOwnerId(
+      character
+    );
+
+
+  if (ownerDiscordId) {
+
+    return (
+      ownerDiscordId ===
+      discordUserId
+    );
+
+  }
+
+
+  // --------------------------------------------------
+  // Legacy characters
+  // --------------------------------------------------
+
+  /**
+   * Characters created before ownership was introduced
+   * do not have ownerDiscordId.
+   *
+   * Preserve the old behavior for those characters:
+   * the assigned player may still edit/export them.
+   */
 
   return (
     getAssignedUserId(
@@ -880,6 +915,12 @@ function buildCharacterEditorEmbed(
     );
 
 
+  const ownerDiscordId =
+    getCharacterOwnerId(
+      character
+    );
+
+
   const coreAspects =
     (
       character.aspects ||
@@ -976,6 +1017,19 @@ function buildCharacterEditorEmbed(
               character.archetype,
               200
             ),
+
+          inline:
+            true
+        },
+
+        {
+          name:
+            "Owner",
+
+          value:
+            ownerDiscordId
+              ? `<@${ownerDiscordId}>`
+              : "GM / Legacy",
 
           inline:
             true
@@ -1347,25 +1401,6 @@ async function handleCharacterCreate(
   campaign
 ) {
 
-  if (
-    !isGameMaster(
-      campaign,
-      interaction.user.id
-    )
-  ) {
-
-    await interaction.reply({
-      content:
-        "☠ Only the Game Master can create characters.",
-      ephemeral:
-        true
-    });
-
-    return;
-
-  }
-
-
   campaign.gameState.characters ??=
     [];
 
@@ -1399,7 +1434,10 @@ async function handleCharacterCreate(
   const duplicate =
     campaign.gameState.characters.some(
       character =>
-        character.name
+        String(
+          character.name ||
+          ""
+        )
           .trim()
           .toLowerCase() ===
         requestedName.toLowerCase()
@@ -1436,9 +1474,72 @@ async function handleCharacterCreate(
     requestedName;
 
 
+  const creatorIsGameMaster =
+    isGameMaster(
+      campaign,
+      interaction.user.id
+    );
+
+
+  // --------------------------------------------------
+  // Player ownership
+  // --------------------------------------------------
+
+  /**
+   * GM-created characters remain GM/legacy controlled
+   * unless ownership is added later.
+   *
+   * Player-created characters are owned by the player
+   * who created them.
+   */
+
+  if (!creatorIsGameMaster) {
+
+    setCharacterOwner(
+      character,
+      interaction.user.id
+    );
+
+  }
+
+
   campaign.gameState.characters.push(
     character
   );
+
+
+  // --------------------------------------------------
+  // Auto-assign a player-created character when possible
+  // --------------------------------------------------
+
+  /**
+   * A Discord player may only be assigned to one
+   * character at a time under the current campaign
+   * assignment system.
+   *
+   * If the player is not already assigned to another
+   * character, their newly created character becomes
+   * their active assigned character automatically.
+   *
+   * If they already have an assignment, ownership is
+   * still preserved and the new character remains
+   * unassigned until the GM changes assignments.
+   */
+
+  if (
+    !creatorIsGameMaster &&
+    !getCharacterAssignedToUser(
+      campaign,
+      interaction.user.id
+    )
+  ) {
+
+    campaign.gameState.assignments[
+      character.id
+    ] =
+      interaction.user.id;
+
+  }
 
 
   saveCampaignState(
@@ -1447,6 +1548,19 @@ async function handleCharacterCreate(
 
 
   await interaction.reply({
+
+    content:
+      creatorIsGameMaster
+        ? `☠ Created **${character.name}**.`
+        : (
+            getAssignedUserId(
+              campaign,
+              character.id
+            ) ===
+            interaction.user.id
+              ? `☠ Created **${character.name}**. You own and are assigned to this character.`
+              : `☠ Created **${character.name}**. You own this character, but your existing campaign assignment was not changed.`
+          ),
 
     embeds: [
       buildCharacterEditorEmbed(
@@ -1458,7 +1572,10 @@ async function handleCharacterCreate(
     components:
       buildCharacterEditorComponents(
         character
-      )
+      ),
+
+    ephemeral:
+      !creatorIsGameMaster
 
   });
 
@@ -1499,7 +1616,7 @@ async function handleCharacterEdit(
 
 
   if (
-    !canControlCharacter(
+    !canManageCharacter(
       campaign,
       character,
       interaction.user.id
@@ -1549,25 +1666,6 @@ async function handleCharacterImport(
   campaign
 ) {
 
-  if (
-    !isGameMaster(
-      campaign,
-      interaction.user.id
-    )
-  ) {
-
-    await interaction.reply({
-      content:
-        "☠ Only the Game Master can import characters.",
-      ephemeral:
-        true
-    });
-
-    return;
-
-  }
-
-
   const attachment =
     interaction.options.getAttachment(
       "file",
@@ -1606,8 +1704,24 @@ async function handleCharacterImport(
       );
 
 
+    if (!response.ok) {
+
+      throw new Error(
+        `Discord attachment download failed (${response.status}).`
+      );
+
+    }
+
+
     const text =
       await response.text();
+
+
+    const importerIsGameMaster =
+      isGameMaster(
+        campaign,
+        interaction.user.id
+      );
 
 
     const character =
@@ -1615,8 +1729,34 @@ async function handleCharacterImport(
         campaign,
         JSON.parse(
           text
-        )
+        ),
+        importerIsGameMaster
+          ? {}
+          : {
+              ownerDiscordId:
+                interaction.user.id
+            }
       );
+
+
+    // ------------------------------------------------
+    // Auto-assign a player import when possible
+    // ------------------------------------------------
+
+    if (
+      !importerIsGameMaster &&
+      !getCharacterAssignedToUser(
+        campaign,
+        interaction.user.id
+      )
+    ) {
+
+      campaign.gameState.assignments[
+        character.id
+      ] =
+        interaction.user.id;
+
+    }
 
 
     saveCampaignState(
@@ -1624,9 +1764,23 @@ async function handleCharacterImport(
     );
 
 
+    const assignedToImporter =
+      getAssignedUserId(
+        campaign,
+        character.id
+      ) ===
+      interaction.user.id;
+
+
     await interaction.editReply({
       content:
-        `☠ **${character.name}** has been imported.`
+        importerIsGameMaster
+          ? `☠ **${character.name}** has been imported.`
+          : (
+              assignedToImporter
+                ? `☠ **${character.name}** has been imported. You own and are assigned to this character.`
+                : `☠ **${character.name}** has been imported. You own this character, but your existing campaign assignment was not changed.`
+            )
     });
 
   }
@@ -1677,7 +1831,7 @@ async function handleCharacterExport(
 
 
   if (
-    !canControlCharacter(
+    !canManageCharacter(
       campaign,
       character,
       interaction.user.id
@@ -1779,11 +1933,18 @@ async function handleCharacterList(
           );
 
 
+        const owner =
+          getCharacterOwnerId(
+            character
+          );
+
+
         return (
           `**${index + 1}. ${character.name}**` +
           `${character.archetype ? ` — ${character.archetype}` : ""}\n` +
           `${character.active === false ? "Dead" : "Active"} • ` +
-          `${assigned ? `<@${assigned}>` : "Unassigned"}`
+          `Owner: ${owner ? `<@${owner}>` : "GM / Legacy"} • ` +
+          `Assigned: ${assigned ? `<@${assigned}>` : "Unassigned"}`
         );
 
       }
@@ -2127,7 +2288,7 @@ async function handleButton(
 
 
   if (
-    !canControlCharacter(
+    !canManageCharacter(
       campaign,
       character,
       interaction.user.id
@@ -2544,7 +2705,7 @@ async function handleSelectMenu(
 
   if (
     !character ||
-    !canControlCharacter(
+    !canManageCharacter(
       campaign,
       character,
       interaction.user.id
@@ -2980,7 +3141,7 @@ async function handleModalSubmit(
 
   if (
     !character ||
-    !canControlCharacter(
+    !canManageCharacter(
       campaign,
       character,
       interaction.user.id

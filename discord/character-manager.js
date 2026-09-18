@@ -4,10 +4,181 @@
  * Handles character import/export for Discord while
  * preserving compatibility with the existing
  * 13 Omens web application's character format.
+ *
+ * Discord-specific metadata such as character ownership
+ * is stored only inside the Discord campaign state and
+ * is never included in portable character exports.
  */
 
 const ThirteenOmensState =
   require("../js/state.js");
+
+
+// ====================================================
+// Normalize character name
+// ====================================================
+
+function normalizeCharacterName(
+  name
+) {
+
+  return String(
+    name || ""
+  )
+    .trim()
+    .toLowerCase();
+
+}
+
+
+// ====================================================
+// Character owner helpers
+// ====================================================
+
+/**
+ * ownerDiscordId is Discord-only metadata.
+ *
+ * It represents the Discord user who owns/manages the
+ * character outside of temporary campaign assignment.
+ *
+ * Ownership and assignment are intentionally separate:
+ *
+ * ownerDiscordId
+ *   = who may maintain/edit/export the character
+ *
+ * campaign.gameState.assignments
+ *   = who is currently playing the character
+ *
+ * Old characters may not have ownerDiscordId at all.
+ * Those characters are treated as having no player owner.
+ */
+
+function getCharacterOwnerId(
+  character
+) {
+
+  if (
+    !character ||
+    typeof character !==
+      "object"
+  ) {
+
+    return null;
+
+  }
+
+
+  if (
+    typeof character.ownerDiscordId !==
+      "string"
+  ) {
+
+    return null;
+
+  }
+
+
+  const ownerDiscordId =
+    character.ownerDiscordId.trim();
+
+
+  return (
+    ownerDiscordId ||
+    null
+  );
+
+}
+
+
+// ====================================================
+// Is character owner
+// ====================================================
+
+function isCharacterOwner(
+  character,
+  discordUserId
+) {
+
+  if (
+    !discordUserId
+  ) {
+
+    return false;
+
+  }
+
+
+  return (
+    getCharacterOwnerId(
+      character
+    ) ===
+    String(
+      discordUserId
+    )
+  );
+
+}
+
+
+// ====================================================
+// Set character owner
+// ====================================================
+
+function setCharacterOwner(
+  character,
+  discordUserId
+) {
+
+  if (
+    !character ||
+    typeof character !==
+      "object"
+  ) {
+
+    throw new Error(
+      "Character not found."
+    );
+
+  }
+
+
+  // --------------------------------------------------
+  // Null / blank removes player ownership
+  // --------------------------------------------------
+
+  if (
+    discordUserId ===
+      null ||
+    discordUserId ===
+      undefined ||
+    String(
+      discordUserId
+    ).trim() ===
+      ""
+  ) {
+
+    delete character.ownerDiscordId;
+
+    return null;
+
+  }
+
+
+  // --------------------------------------------------
+  // Store Discord user ID
+  // --------------------------------------------------
+
+  character.ownerDiscordId =
+    String(
+      discordUserId
+    ).trim();
+
+
+  return (
+    character.ownerDiscordId
+  );
+
+}
 
 
 // ====================================================
@@ -16,7 +187,8 @@ const ThirteenOmensState =
 
 function importCharacterIntoCampaign(
   campaign,
-  characterFile
+  characterFile,
+  options = {}
 ) {
 
   // --------------------------------------------------
@@ -55,7 +227,8 @@ function importCharacterIntoCampaign(
   // --------------------------------------------------
 
   if (
-    campaign.gameState.characters.length >= 6
+    campaign.gameState.characters.length >=
+    6
   ) {
 
     throw new Error(
@@ -105,6 +278,9 @@ function importCharacterIntoCampaign(
    *
    * It also assigns the imported character a new
    * internal character ID.
+   *
+   * Discord ownership is intentionally NOT read from
+   * the imported file.
    */
 
   const validatedState =
@@ -150,28 +326,16 @@ function importCharacterIntoCampaign(
   // Validate imported character name
   // --------------------------------------------------
 
-  if (
-    typeof character.name !==
-      "string"
-  ) {
-
-    throw new Error(
-      "Cannot import character: character name is invalid."
+  const normalizedName =
+    normalizeCharacterName(
+      character.name
     );
 
-  }
 
-
-  const normalizedImportedName =
-    character.name
-      .trim()
-      .toLowerCase();
-
-
-  if (!normalizedImportedName) {
+  if (!normalizedName) {
 
     throw new Error(
-      "Cannot import character: character name is required."
+      "Imported character does not have a valid name."
     );
 
   }
@@ -181,55 +345,23 @@ function importCharacterIntoCampaign(
   // Prevent duplicate character names
   // --------------------------------------------------
 
-  /**
-   * Discord character commands locate characters by
-   * name, so duplicate names would make commands
-   * ambiguous.
-   *
-   * Comparison is:
-   *
-   * - case-insensitive
-   * - whitespace-trimmed
-   *
-   * Therefore:
-   *
-   * Jasper
-   * jasper
-   * " Jasper "
-   *
-   * are all treated as the same name.
-   */
-
   const duplicateName =
     campaign.gameState.characters.some(
-      existing => {
-
-        if (
-          !existing ||
-          typeof existing.name !==
-            "string"
-        ) {
-
-          return false;
-
-        }
-
-
-        return (
+      existing =>
+        normalizeCharacterName(
+          existing &&
           existing.name
-            .trim()
-            .toLowerCase() ===
-          normalizedImportedName
-        );
-
-      }
+        ) ===
+        normalizedName
     );
 
 
-  if (duplicateName) {
+  if (
+    duplicateName
+  ) {
 
     throw new Error(
-      `A character named "${character.name.trim()}" already exists in this campaign.`
+      `A character named "${character.name}" already exists in this campaign.`
     );
 
   }
@@ -249,6 +381,53 @@ function importCharacterIntoCampaign(
 
     throw new Error(
       "Character import generated a duplicate character ID."
+    );
+
+  }
+
+
+  // --------------------------------------------------
+  // Remove any untrusted Discord ownership metadata
+  // --------------------------------------------------
+
+  /**
+   * The web validator should already reject unknown
+   * Discord-only fields in portable files.
+   *
+   * This is an additional defensive measure so an
+   * imported file can never choose its own Discord owner.
+   */
+
+  delete character.ownerDiscordId;
+
+
+  // --------------------------------------------------
+  // Apply trusted Discord owner
+  // --------------------------------------------------
+
+  /**
+   * bot.js may pass:
+   *
+   * {
+   *   ownerDiscordId: interaction.user.id
+   * }
+   *
+   * when a PLAYER imports a character.
+   *
+   * GM imports may omit this option, leaving the
+   * character without a player owner.
+   */
+
+  if (
+    options &&
+    typeof options ===
+      "object" &&
+    options.ownerDiscordId
+  ) {
+
+    setCharacterOwner(
+      character,
+      options.ownerDiscordId
     );
 
   }
@@ -291,15 +470,15 @@ function findCharacterByName(
 
 
   const normalizedName =
-    String(
-      name || ""
-    )
-      .trim()
-      .toLowerCase();
+    normalizeCharacterName(
+      name
+    );
 
 
   if (!normalizedName) {
+
     return null;
+
   }
 
 
@@ -319,15 +498,95 @@ function findCharacterByName(
 
 
         return (
-          character.name
-            .trim()
-            .toLowerCase() ===
+          normalizeCharacterName(
+            character.name
+          ) ===
           normalizedName
         );
 
       }
     ) ||
     null
+  );
+
+}
+
+
+// ====================================================
+// Find character by ID
+// ====================================================
+
+function findCharacterById(
+  campaign,
+  characterId
+) {
+
+  if (
+    !campaign ||
+    !campaign.gameState ||
+    !Array.isArray(
+      campaign.gameState.characters
+    )
+  ) {
+
+    return null;
+
+  }
+
+
+  if (
+    !characterId
+  ) {
+
+    return null;
+
+  }
+
+
+  return (
+    campaign.gameState.characters.find(
+      character =>
+        character &&
+        character.id ===
+        characterId
+    ) ||
+    null
+  );
+
+}
+
+
+// ====================================================
+// Get characters owned by Discord user
+// ====================================================
+
+function getCharactersOwnedByUser(
+  campaign,
+  discordUserId
+) {
+
+  if (
+    !campaign ||
+    !campaign.gameState ||
+    !Array.isArray(
+      campaign.gameState.characters
+    ) ||
+    !discordUserId
+  ) {
+
+    return [];
+
+  }
+
+
+  return (
+    campaign.gameState.characters.filter(
+      character =>
+        isCharacterOwner(
+          character,
+          discordUserId
+        )
+    )
   );
 
 }
@@ -364,6 +623,7 @@ function exportCharacter(
    *
    * Discord-only data such as:
    *
+   * - ownerDiscordId
    * - Discord user IDs
    * - Guild IDs
    * - Channel IDs
@@ -673,6 +933,18 @@ module.exports = {
   importCharacterIntoCampaign,
 
   findCharacterByName,
+
+  findCharacterById,
+
+  normalizeCharacterName,
+
+  getCharacterOwnerId,
+
+  isCharacterOwner,
+
+  setCharacterOwner,
+
+  getCharactersOwnedByUser,
 
   exportCharacter,
 
