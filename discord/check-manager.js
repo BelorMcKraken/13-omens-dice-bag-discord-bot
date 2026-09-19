@@ -1,86 +1,57 @@
 "use strict";
-
 const {
   randomUUID
 } = require("node:crypto");
-
 const {
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle
 } = require("discord.js");
-
 const Rules =
   require("../js/rules.js");
-
 const State =
   require("../js/state.js");
-
 const {
   getCampaign,
   updateGameState,
   isGameMaster
 } = require("./game-manager");
 
-
-// ====================================================
-// Utility helpers
-// ====================================================
-
 function clone(value) {
-
   return JSON.parse(
     JSON.stringify(value)
   );
-
 }
 
-
 function saveCampaign(campaign) {
-
   const saved =
     updateGameState(
       campaign.id,
       campaign.gameState
     );
 
-
   if (!saved) {
-
     throw new Error(
       "The campaign state could not be saved."
     );
-
   }
-
 }
 
-
-// ====================================================
-// Upgrade older Discord campaigns to full rules state
-// ====================================================
-
 function ensureRulesState(campaign) {
-
   const state =
     campaign.gameState;
 
-
   const baseline =
     State.defaultState();
-
 
   if (
     !Array.isArray(
       state.characters
     )
   ) {
-
     state.characters = [];
-
   }
-
 
   if (
     !state.assignments ||
@@ -90,11 +61,8 @@ function ensureRulesState(campaign) {
       state.assignments
     )
   ) {
-
     state.assignments = {};
-
   }
-
 
   state.schemaVersion ??=
     baseline.schemaVersion;
@@ -108,27 +76,22 @@ function ensureRulesState(campaign) {
   state.sceneNumber ??=
     1;
 
-
   state.storyCharacterCount ??=
     Math.max(
       1,
       state.characters.length
     );
 
-
   state.perishedCharacterIds ??=
     state.characters
-
       .filter(
         character =>
           character.active === false
       )
-
       .map(
         character =>
           character.id
       );
-
 
   const totalWounds =
     state.characters.reduce(
@@ -144,7 +107,6 @@ function ensureRulesState(campaign) {
       0
     );
 
-
   const totalSafeDiceLost =
     state.characters.reduce(
       (
@@ -159,29 +121,22 @@ function ensureRulesState(campaign) {
       0
     );
 
-
   if (
     !state.bag ||
     typeof state.bag !==
       "object"
   ) {
-
     state.bag = {
-
       safe:
         Math.max(
           0,
           8 -
           totalSafeDiceLost
         ),
-
       omen:
         0
-
     };
-
   }
-
 
   state.bag.safe =
     Number.isInteger(
@@ -190,7 +145,6 @@ function ensureRulesState(campaign) {
       ? state.bag.safe
       : 8;
 
-
   state.bag.omen =
     Number.isInteger(
       state.bag.omen
@@ -198,13 +152,11 @@ function ensureRulesState(campaign) {
       ? state.bag.omen
       : 0;
 
-
   if (
     !Number.isInteger(
       state.hostOmens
     )
   ) {
-
     state.hostOmens =
       Math.max(
         0,
@@ -212,40 +164,28 @@ function ensureRulesState(campaign) {
         state.bag.omen -
         totalWounds
       );
-
   }
 
-
   state.settings = {
-
     autoApplyStrainFlaw:
       false,
-
     lockActDuringPendingCheck:
       true,
-
     allowPlayerCharacterEdits:
       true,
-
     ...state.settings
-
   };
-
 
   if (
     !Array.isArray(
       state.history
     )
   ) {
-
     state.history = [];
-
   }
-
 
   state.currentCheck ??=
     null;
-
 
   if (
     state.characters.length > 0 &&
@@ -255,45 +195,29 @@ function ensureRulesState(campaign) {
         state.selectedCharacterId
     )
   ) {
-
     state.selectedCharacterId =
       state.characters[0].id;
-
   }
 
-
   return state;
-
 }
-
-
-// ====================================================
-// Campaign lookup
-// ====================================================
 
 async function campaignForInteraction(
   interaction
 ) {
-
   if (
     !interaction.guildId ||
     !interaction.channelId
   ) {
-
     await interaction.reply({
-
       content:
         "☠ Checks must be used inside a Discord campaign channel.",
-
       ephemeral:
         true
-
     });
 
     return null;
-
   }
-
 
   const campaign =
     getCampaign(
@@ -301,43 +225,28 @@ async function campaignForInteraction(
       interaction.channelId
     );
 
-
   if (!campaign) {
-
     await interaction.reply({
-
       content:
         "☠ There is no 13 Omens campaign in this channel.",
-
       ephemeral:
         true
-
     });
 
     return null;
-
   }
-
 
   ensureRulesState(
     campaign
   );
 
-
   return campaign;
-
 }
-
-
-// ====================================================
-// Character helpers
-// ====================================================
 
 function findCharacter(
   campaign,
   name
 ) {
-
   const normalized =
     String(
       name ||
@@ -346,11 +255,9 @@ function findCharacter(
       .trim()
       .toLowerCase();
 
-
   return (
     campaign.gameState.characters.find(
       character =>
-
         String(
           character.name ||
           ""
@@ -358,19 +265,15 @@ function findCharacter(
           .trim()
           .toLowerCase() ===
         normalized
-
     ) ||
     null
   );
-
 }
-
 
 function findAspect(
   character,
   name
 ) {
-
   const normalized =
     String(
       name ||
@@ -379,11 +282,9 @@ function findAspect(
       .trim()
       .toLowerCase();
 
-
   return (
     character.aspects?.find(
       aspect =>
-
         String(
           aspect.name ||
           ""
@@ -399,38 +300,27 @@ function findAspect(
           .trim()
           .toLowerCase() ===
           normalized
-
     ) ||
     null
   );
-
 }
-
-
-// ====================================================
-// Ownership helpers
-// ====================================================
 
 function assignedUserId(
   campaign,
   characterId
 ) {
-
   return (
     campaign.gameState.assignments?.[
       characterId
     ] ||
     null
   );
-
 }
-
 
 function characterAssignedToUser(
   campaign,
   userId
 ) {
-
   return (
     campaign.gameState.characters.find(
       character =>
@@ -442,15 +332,21 @@ function characterAssignedToUser(
     ) ||
     null
   );
-
 }
-
 
 function mayControlCheck(
   campaign,
   check,
   userId
 ) {
+  if (
+    isGameMaster(
+      campaign,
+      userId
+    )
+  ) {
+    return true;
+  }
 
   const assigned =
     assignedUserId(
@@ -458,125 +354,77 @@ function mayControlCheck(
       check.characterId
     );
 
-
-  if (assigned) {
-
-    return (
-      assigned ===
-      userId
-    );
-
-  }
-
-
   return (
-    isGameMaster(
-      campaign,
-      userId
-    )
+    assigned ===
+    userId
   );
-
 }
 
-
-// ====================================================
-// Perk helpers
-// ====================================================
-
 function perkEffectText(rule) {
-
   if (!rule) {
     return "Manual Perk";
   }
 
-
   switch (rule.type) {
 
     case "reroll":
-
       return (
         "Reroll the same dice. " +
         "The better result is selected automatically."
       );
 
-
     case "keep":
-
       return (
         "Change resolution to Highest + Lowest."
       );
 
-
     case "bossy":
-
       return (
         "Gain 1 Edge and resolve using Highest + Lowest."
       );
 
-
     case "cancel":
-
       return (
         "Cancel one Flaw affecting this Check."
       );
 
-
     case "aid":
-
       return (
         "Help another character by canceling one Flaw."
       );
 
-
     case "lucky":
-
       return (
         "Use Luck instead of the original Aspect for this Check."
       );
 
-
     case "edge":
-
       return (
         "Gain 1 additional Edge for this Check."
       );
 
-
     default:
-
       return rule.type;
   }
-
 }
-
-
-// ----------------------------------------------------
-// Find every currently eligible Check Perk
-// ----------------------------------------------------
 
 function eligibleCheckPerks(
   campaign,
   userId
 ) {
-
   const state =
     campaign.gameState;
 
-
   const check =
     state.currentCheck;
-
 
   if (
     !check ||
     check.phase ===
       Rules.PHASE_RESOLVED
   ) {
-
     return [];
-
   }
-
 
   const gm =
     isGameMaster(
@@ -584,22 +432,13 @@ function eligibleCheckPerks(
       userId
     );
 
-
   const results = [];
-
 
   state.characters.forEach(
     (
       character,
       characterIndex
     ) => {
-
-      // ------------------------------------------------
-      // GM may activate on behalf of any character.
-      //
-      // A normal Player may activate only Perks on
-      // their assigned character.
-      // ------------------------------------------------
 
       if (
         !gm &&
@@ -609,15 +448,11 @@ function eligibleCheckPerks(
         ) !==
         userId
       ) {
-
         return;
-
       }
-
 
       const seenRuleKeys =
         new Set();
-
 
       (
         character.perks ||
@@ -632,30 +467,20 @@ function eligibleCheckPerks(
             !perk ||
             !perk.ruleKey
           ) {
-
             return;
-
           }
-
-
-          // Avoid displaying duplicate copies of the
-          // same automated rule on one character.
 
           if (
             seenRuleKeys.has(
               perk.ruleKey
             )
           ) {
-
             return;
-
           }
-
 
           seenRuleKeys.add(
             perk.ruleKey
           );
-
 
           const rule =
             Rules.Perks
@@ -663,14 +488,9 @@ function eligibleCheckPerks(
                 perk.ruleKey
               ];
 
-
           if (!rule) {
             return;
           }
-
-
-          // Automatic and outside-Check Perks will fail
-          // eligibility here and are therefore hidden.
 
           if (
             !Rules.Perks.eligible(
@@ -680,24 +500,15 @@ function eligibleCheckPerks(
               check
             )
           ) {
-
             return;
-
           }
 
-
           results.push({
-
             character,
-
             characterIndex,
-
             perk,
-
             perkIndex,
-
             rule
-
           });
 
         }
@@ -706,46 +517,32 @@ function eligibleCheckPerks(
     }
   );
 
-
   return results;
-
 }
-
-
-// ----------------------------------------------------
-// Does anybody have an eligible active Check Perk?
-// ----------------------------------------------------
 
 function hasAnyEligibleCheckPerk(
   state
 ) {
-
   const check =
     state.currentCheck;
-
 
   if (
     !check ||
     check.phase ===
       Rules.PHASE_RESOLVED
   ) {
-
     return false;
-
   }
-
 
   for (
     const character of
       state.characters
   ) {
-
     for (
       const perk of
         character.perks ||
         []
     ) {
-
       if (
         perk?.ruleKey &&
         Rules.Perks.eligible(
@@ -755,29 +552,17 @@ function hasAnyEligibleCheckPerk(
           check
         )
       ) {
-
         return true;
-
       }
-
     }
-
   }
 
-
   return false;
-
 }
-
-
-// ====================================================
-// Formatting helpers
-// ====================================================
 
 function difficultyName(
   modifier
 ) {
-
   return (
     Object.entries(
       Rules.DIFFICULTIES
@@ -793,87 +578,62 @@ function difficultyName(
     )?.[0] ||
     "Average"
   );
-
 }
-
 
 function dieTypeText(
   die
 ) {
-
   if (
     die.type ===
     Rules.DIE_OMEN
   ) {
-
     return "💀 Omen Die";
-
   }
 
-
   return "🎲 Safe Die";
-
 }
-
 
 function drawModeText(
   check
 ) {
-
   if (
     check.keepStrategy ===
     "highest-plus-lowest"
   ) {
-
     return "Highest + Lowest";
-
   }
-
 
   if (
     check.composition.resolutionMode ===
     "EDGE"
   ) {
-
     return "Edge — keep highest two";
-
   }
-
 
   if (
     check.composition.resolutionMode ===
     "FLAW"
   ) {
-
     return "Flaw — keep lowest two";
-
   }
 
-
   return "Normal — use both dice";
-
 }
-
 
 function formatDrawnDice(
   check
 ) {
-
   if (
     !Array.isArray(
       check.dice
     ) ||
     !check.dice.length
   ) {
-
     return "No dice drawn.";
-
   }
-
 
   return (
     check.dice
-
       .map(
         (
           die,
@@ -883,50 +643,38 @@ function formatDrawnDice(
           let text =
             `${index + 1}. ${dieTypeText(die)}`;
 
-
           if (
             die.source ===
             "forced"
           ) {
-
             text +=
               " — **Forced Omen**";
-
           }
-
 
           return text;
 
         }
       )
-
       .join(
         "\n"
       )
   );
-
 }
-
 
 function formatRolledDice(
   roll
 ) {
-
   if (
     !roll ||
     !Array.isArray(
       roll.dice
     )
   ) {
-
     return "No roll available.";
-
   }
-
 
   return (
     roll.dice
-
       .map(
         (
           die,
@@ -938,25 +686,19 @@ function formatRolledDice(
               ? "**USED**"
               : "Discarded";
 
-
           if (
             die.selectedWound
           ) {
-
             status +=
               " • 💀 **WOUND DIE**";
-
           }
 
           else if (
             die.woundCandidate
           ) {
-
             status +=
               " • Omen wound candidate";
-
           }
-
 
           return (
             `${index + 1}. ` +
@@ -967,145 +709,101 @@ function formatRolledDice(
 
         }
       )
-
       .join(
         "\n"
       )
   );
-
 }
-
-
-// ====================================================
-// Modifier text
-// ====================================================
 
 function modifierText(
   check
 ) {
-
   const lines = [];
-
 
   if (
     check.configuration.edges
   ) {
-
     lines.push(
       `Edges: ${check.configuration.edges}`
     );
-
   }
-
 
   if (
     check.configuration.flaws
   ) {
-
     lines.push(
       `Flaws: ${check.configuration.flaws}`
     );
-
   }
-
 
   if (
     check.automaticFlaws?.wounds
   ) {
-
     lines.push(
       `Wound Flaw: ${check.automaticFlaws.wounds}`
     );
-
   }
-
 
   if (
     check.automaticFlaws?.strain
   ) {
-
     lines.push(
       `Strain Flaw: ${check.automaticFlaws.strain}`
     );
-
   }
-
 
   if (
     check.configuration.forcedOmen
   ) {
-
     lines.push(
       "Forced Omen: Yes"
     );
-
   }
-
 
   if (
     check.configuration.risky
   ) {
-
     lines.push(
       "Risky: Yes"
     );
-
   }
-
 
   if (
     check.configuration.harmless
   ) {
-
     lines.push(
       "Harmless: Yes"
     );
-
   }
-
 
   for (
     const activation of
       check.perkActivations ||
       []
   ) {
-
     lines.push(
       `Perk: ${activation.name}`
     );
-
   }
-
 
   if (!lines.length) {
-
     return "None";
-
   }
-
 
   return lines.join(
     "\n"
   );
-
 }
-
-
-// ====================================================
-// CHECK CALLED embed
-// ====================================================
 
 function requestedEmbed(
   campaign,
   check
 ) {
-
   const assigned =
     assignedUserId(
       campaign,
       check.characterId
     );
-
 
   const embed =
     new EmbedBuilder()
@@ -1121,7 +819,6 @@ function requestedEmbed(
       .addFields(
 
         {
-
           name:
             "Aspect",
 
@@ -1130,11 +827,9 @@ function requestedEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Target Number",
 
@@ -1145,11 +840,9 @@ function requestedEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Difficulty",
 
@@ -1160,11 +853,9 @@ function requestedEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Dice to Draw",
 
@@ -1175,11 +866,9 @@ function requestedEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Resolution",
 
@@ -1190,11 +879,9 @@ function requestedEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Player",
 
@@ -1205,11 +892,9 @@ function requestedEmbed(
 
           inline:
             false
-
         },
 
         {
-
           name:
             "Modifiers",
 
@@ -1220,22 +905,16 @@ function requestedEmbed(
 
           inline:
             false
-
         }
 
       );
-
-
-  // Lucky or another future Aspect-changing Perk.
 
   if (
     check.originalAspectName &&
     check.originalAspectName !==
       check.configuration.aspect
   ) {
-
     embed.addFields({
-
       name:
         "Original Aspect",
 
@@ -1244,34 +923,21 @@ function requestedEmbed(
 
       inline:
         false
-
     });
-
   }
 
-
   embed.setFooter({
-
     text:
       "Reach into the bag when ready."
-
   });
 
-
   return embed;
-
 }
-
-
-// ====================================================
-// DICE DRAWN embed
-// ====================================================
 
 function drawnEmbed(
   state,
   check
 ) {
-
   return (
     new EmbedBuilder()
 
@@ -1286,7 +952,6 @@ function drawnEmbed(
       .addFields(
 
         {
-
           name:
             "Check",
 
@@ -1296,11 +961,9 @@ function drawnEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Resolution",
 
@@ -1311,11 +974,9 @@ function drawnEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Dice Drawn",
 
@@ -1326,11 +987,9 @@ function drawnEmbed(
 
           inline:
             false
-
         },
 
         {
-
           name:
             "Modifiers",
 
@@ -1341,11 +1000,9 @@ function drawnEmbed(
 
           inline:
             false
-
         },
 
         {
-
           name:
             "Bag",
 
@@ -1356,36 +1013,25 @@ function drawnEmbed(
 
           inline:
             false
-
         }
 
       )
 
       .setFooter({
-
         text:
           "The die types are known. Their faces are not. Roll when ready."
-
       })
   );
-
 }
-
-
-// ====================================================
-// CHECK RESULT embed
-// ====================================================
 
 function rolledEmbed(
   state,
   check
 ) {
-
   const roll =
     Rules.getSelectedRoll(
       check
     );
-
 
   const embed =
     new EmbedBuilder()
@@ -1401,7 +1047,6 @@ function rolledEmbed(
       .addFields(
 
         {
-
           name:
             "Dice",
 
@@ -1412,11 +1057,9 @@ function rolledEmbed(
 
           inline:
             false
-
         },
 
         {
-
           name:
             "Total",
 
@@ -1427,11 +1070,9 @@ function rolledEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Target Number",
 
@@ -1442,11 +1083,9 @@ function rolledEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Result",
 
@@ -1455,11 +1094,9 @@ function rolledEmbed(
 
           inline:
             true
-
         },
 
         {
-
           name:
             "Resolution",
 
@@ -1470,29 +1107,20 @@ function rolledEmbed(
 
           inline:
             false
-
         }
 
       );
 
-
-  // --------------------------------------------------
-  // Show Awkward Pause reroll information
-  // --------------------------------------------------
-
   if (
     check.reroll
   ) {
-
     const selectedName =
       check.selectedRoll ===
         "reroll"
         ? "Reroll"
         : "Original";
 
-
     embed.addFields({
-
       name:
         "🎭 Reroll",
 
@@ -1503,18 +1131,13 @@ function rolledEmbed(
 
       inline:
         false
-
     });
-
   }
-
 
   if (
     check.perkActivations?.length
   ) {
-
     embed.addFields({
-
       name:
         "Perks Used",
 
@@ -1530,18 +1153,13 @@ function rolledEmbed(
 
       inline:
         false
-
     });
-
   }
-
 
   if (
     roll.riskyFailure
   ) {
-
     embed.addFields({
-
       name:
         "⚠ Risky Failure",
 
@@ -1550,19 +1168,14 @@ function rolledEmbed(
 
       inline:
         false
-
     });
-
   }
-
 
   if (
     roll.wound.triggered &&
     !check.configuration.harmless
   ) {
-
     embed.addFields({
-
       name:
         "💀 OMEN WOUND",
 
@@ -1572,19 +1185,14 @@ function rolledEmbed(
 
       inline:
         false
-
     });
-
   }
-
 
   if (
     roll.wound.triggered &&
     check.configuration.harmless
   ) {
-
     embed.addFields({
-
       name:
         "⚠ Harmless Omen",
 
@@ -1594,32 +1202,21 @@ function rolledEmbed(
 
       inline:
         false
-
     });
-
   }
 
-
   return embed;
-
 }
-
-
-// ====================================================
-// Completed Check embed
-// ====================================================
 
 function completedEmbed(
   state,
   check,
   message = null
 ) {
-
   const roll =
     Rules.getSelectedRoll(
       check
     );
-
 
   const character =
     state.characters.find(
@@ -1627,7 +1224,6 @@ function completedEmbed(
         entry.id ===
         check.characterId
     );
-
 
   const embed =
     new EmbedBuilder()
@@ -1640,13 +1236,10 @@ function completedEmbed(
         `**${character?.name || check.characterName} — ${check.configuration.aspect}**`
       );
 
-
   if (roll) {
-
     embed.addFields(
 
       {
-
         name:
           "Result",
 
@@ -1655,11 +1248,9 @@ function completedEmbed(
 
         inline:
           true
-
       },
 
       {
-
         name:
           "Roll",
 
@@ -1668,20 +1259,15 @@ function completedEmbed(
 
         inline:
           true
-
       }
 
     );
-
   }
-
 
   if (
     check.perkActivations?.length
   ) {
-
     embed.addFields({
-
       name:
         "Perks Used",
 
@@ -1697,16 +1283,11 @@ function completedEmbed(
 
       inline:
         false
-
     });
-
   }
 
-
   if (message) {
-
     embed.addFields({
-
       name:
         "Resolution",
 
@@ -1715,14 +1296,10 @@ function completedEmbed(
 
       inline:
         false
-
     });
-
   }
 
-
   embed.addFields({
-
     name:
       "Bag",
 
@@ -1733,42 +1310,27 @@ function completedEmbed(
 
     inline:
       false
-
   });
-
 
   embed.setFooter({
-
     text:
       "The Check is resolved."
-
   });
 
-
   return embed;
-
 }
-
-
-// ====================================================
-// Active Perk button
-// ====================================================
 
 function makeUsePerkButton(
   state,
   check
 ) {
-
   if (
     !hasAnyEligibleCheckPerk(
       state
     )
   ) {
-
     return null;
-
   }
-
 
   return (
     new ButtonBuilder()
@@ -1789,19 +1351,12 @@ function makeUsePerkButton(
         ButtonStyle.Secondary
       )
   );
-
 }
-
-
-// ====================================================
-// CHECK CALLED buttons
-// ====================================================
 
 function requestedComponents(
   state,
   check
 ) {
-
   const row =
     new ActionRowBuilder()
 
@@ -1823,39 +1378,27 @@ function requestedComponents(
 
       );
 
-
   const perkButton =
     makeUsePerkButton(
       state,
       check
     );
 
-
   if (perkButton) {
-
     row.addComponents(
       perkButton
     );
-
   }
-
 
   return [
     row
   ];
-
 }
-
-
-// ====================================================
-// DRAWN buttons
-// ====================================================
 
 function drawnComponents(
   state,
   check
 ) {
-
   const row =
     new ActionRowBuilder()
 
@@ -1877,27 +1420,21 @@ function drawnComponents(
 
       );
 
-
   const perkButton =
     makeUsePerkButton(
       state,
       check
     );
 
-
   if (perkButton) {
-
     row.addComponents(
       perkButton
     );
-
   }
-
 
   if (
     check.valiantAvailable
   ) {
-
     row.addComponents(
 
       new ButtonBuilder()
@@ -1915,35 +1452,24 @@ function drawnComponents(
         )
 
     );
-
   }
-
 
   return [
     row
   ];
-
 }
-
-
-// ====================================================
-// ROLLED / WOUND buttons
-// ====================================================
 
 function rolledComponents(
   state,
   check
 ) {
-
   const row =
     new ActionRowBuilder();
-
 
   if (
     check.phase ===
     Rules.PHASE_AWAITING_WOUND
   ) {
-
     row.addComponents(
 
       new ButtonBuilder()
@@ -1962,14 +1488,12 @@ function rolledComponents(
 
     );
 
-
     if (
       Rules.canCheatDeath(
         state,
         check
       )
     ) {
-
       row.addComponents(
 
         new ButtonBuilder()
@@ -1987,13 +1511,10 @@ function rolledComponents(
           )
 
       );
-
     }
-
   }
 
   else {
-
     row.addComponents(
 
       new ButtonBuilder()
@@ -2011,9 +1532,7 @@ function rolledComponents(
         )
 
     );
-
   }
-
 
   const perkButton =
     makeUsePerkButton(
@@ -2021,45 +1540,30 @@ function rolledComponents(
       check
     );
 
-
   if (perkButton) {
-
     row.addComponents(
       perkButton
     );
-
   }
-
 
   return [
     row
   ];
-
 }
-
-
-// ====================================================
-// Build Perk picker
-// ====================================================
 
 function buildPerkPicker(
   campaign,
   userId
 ) {
-
   const perks =
     eligibleCheckPerks(
       campaign,
       userId
     );
 
-
   if (!perks.length) {
-
     return null;
-
   }
-
 
   const gm =
     isGameMaster(
@@ -2067,12 +1571,7 @@ function buildPerkPicker(
       userId
     );
 
-
   const rows = [];
-
-
-  // Discord allows a maximum of five Action Rows,
-  // each containing up to five buttons.
 
   const limited =
     perks.slice(
@@ -2080,16 +1579,13 @@ function buildPerkPicker(
       25
     );
 
-
   for (
     let i = 0;
     i < limited.length;
     i += 5
   ) {
-
     const row =
       new ActionRowBuilder();
-
 
     for (
       const candidate of
@@ -2098,7 +1594,6 @@ function buildPerkPicker(
           i + 5
         )
     ) {
-
       const {
         character,
         characterIndex,
@@ -2108,16 +1603,12 @@ function buildPerkPicker(
       } =
         candidate;
 
-
       const label =
         gm ||
         character.id !==
           campaign.gameState.currentCheck.characterId
-
           ? `${character.name}: ${rule.name}`
-
           : rule.name;
-
 
       row.addComponents(
 
@@ -2143,20 +1634,15 @@ function buildPerkPicker(
           )
 
       );
-
     }
-
 
     rows.push(
       row
     );
-
   }
-
 
   const description =
     limited
-
       .map(
         candidate => {
 
@@ -2168,7 +1654,6 @@ function buildPerkPicker(
               campaign.gameState.currentCheck
             );
 
-
           return (
             `**${candidate.character.name} — ${candidate.rule.name}**\n` +
             `${perkEffectText(candidate.rule)}\n` +
@@ -2177,14 +1662,11 @@ function buildPerkPicker(
 
         }
       )
-
       .join(
         "\n\n"
       );
 
-
   return {
-
     embed:
       new EmbedBuilder()
 
@@ -2200,49 +1682,32 @@ function buildPerkPicker(
         )
 
         .setFooter({
-
           text:
             "Only Perks legal at the current Check phase are shown."
-
         }),
 
     rows
-
   };
-
 }
-
-
-// ====================================================
-// Render the correct public Check state
-// ====================================================
 
 function publicCheckPayload(
   campaign
 ) {
-
   const state =
     campaign.gameState;
-
 
   const check =
     state.currentCheck;
 
-
   if (!check) {
-
     return null;
-
   }
-
 
   if (
     check.phase ===
     Rules.PHASE_REQUESTED
   ) {
-
     return {
-
       embeds: [
         requestedEmbed(
           campaign,
@@ -2255,19 +1720,14 @@ function publicCheckPayload(
           state,
           check
         )
-
     };
-
   }
-
 
   if (
     check.phase ===
     Rules.PHASE_DRAWN
   ) {
-
     return {
-
       embeds: [
         drawnEmbed(
           state,
@@ -2280,11 +1740,8 @@ function publicCheckPayload(
           state,
           check
         )
-
     };
-
   }
-
 
   if (
     check.phase ===
@@ -2292,9 +1749,7 @@ function publicCheckPayload(
     check.phase ===
       Rules.PHASE_AWAITING_WOUND
   ) {
-
     return {
-
       embeds: [
         rolledEmbed(
           state,
@@ -2307,19 +1762,14 @@ function publicCheckPayload(
           state,
           check
         )
-
     };
-
   }
-
 
   if (
     check.phase ===
     Rules.PHASE_RESOLVED
   ) {
-
     return {
-
       embeds: [
         completedEmbed(
           state,
@@ -2329,49 +1779,33 @@ function publicCheckPayload(
       ],
 
       components: []
-
     };
-
   }
 
-
   return null;
-
 }
-
-
-// ====================================================
-// Refresh original public Check card
-// ====================================================
 
 async function refreshPublicCheckMessage(
   interaction,
   campaign
 ) {
-
   const check =
     campaign.gameState.currentCheck;
-
 
   if (
     !check?.discordMessageId
   ) {
-
     return;
-
   }
-
 
   const payload =
     publicCheckPayload(
       campaign
     );
 
-
   if (!payload) {
     return;
   }
-
 
   try {
 
@@ -2379,17 +1813,13 @@ async function refreshPublicCheckMessage(
       !interaction.channel ||
       !interaction.channel.messages
     ) {
-
       return;
-
     }
-
 
     const message =
       await interaction.channel.messages.fetch(
         check.discordMessageId
       );
-
 
     await message.edit(
       payload
@@ -2398,7 +1828,6 @@ async function refreshPublicCheckMessage(
   }
 
   catch (error) {
-
     console.warn(
       "Could not refresh public Check message:"
     );
@@ -2406,30 +1835,20 @@ async function refreshPublicCheckMessage(
     console.warn(
       error.message
     );
-
   }
-
 }
-
-
-// ====================================================
-// /check command
-// ====================================================
 
 async function handleCheckCommand(
   interaction
 ) {
-
   const campaign =
     await campaignForInteraction(
       interaction
     );
 
-
   if (!campaign) {
     return;
   }
-
 
   if (
     !isGameMaster(
@@ -2437,46 +1856,33 @@ async function handleCheckCommand(
       interaction.user.id
     )
   ) {
-
     await interaction.reply({
-
       content:
         "☠ Only the Game Master can call for a Check.",
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const state =
     campaign.gameState;
-
 
   if (
     state.currentCheck &&
     state.currentCheck.phase !==
       Rules.PHASE_RESOLVED
   ) {
-
     await interaction.reply({
-
       content:
         `☠ **${state.currentCheck.characterName || "A character"}** already has a pending Check.`,
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const characterName =
     interaction.options.getString(
@@ -2484,13 +1890,11 @@ async function handleCheckCommand(
       true
     );
 
-
   const aspectName =
     interaction.options.getString(
       "aspect",
       true
     );
-
 
   const difficulty =
     interaction.options.getString(
@@ -2498,13 +1902,11 @@ async function handleCheckCommand(
     ) ||
     "Average";
 
-
   const edges =
     interaction.options.getInteger(
       "edges"
     ) ??
     0;
-
 
   const flaws =
     interaction.options.getInteger(
@@ -2512,13 +1914,11 @@ async function handleCheckCommand(
     ) ??
     0;
 
-
   const risky =
     interaction.options.getBoolean(
       "risky"
     ) ??
     false;
-
 
   const harmless =
     interaction.options.getBoolean(
@@ -2526,13 +1926,11 @@ async function handleCheckCommand(
     ) ??
     false;
 
-
   const forcedOmen =
     interaction.options.getBoolean(
       "forced_omen"
     ) ??
     false;
-
 
   const character =
     findCharacter(
@@ -2540,43 +1938,30 @@ async function handleCheckCommand(
       characterName
     );
 
-
   if (!character) {
-
     await interaction.reply({
-
       content:
         `☠ No character named **${characterName}** exists in this campaign.`,
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   if (
     character.active ===
     false
   ) {
-
     await interaction.reply({
-
       content:
         `☠ **${character.name}** is not active and cannot make a Check.`,
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const aspect =
     findAspect(
@@ -2584,104 +1969,75 @@ async function handleCheckCommand(
       aspectName
     );
 
-
   if (!aspect) {
-
     const available =
       (
         character.aspects ||
         []
       )
-
         .map(
           item =>
             item.name
         )
-
         .join(
           ", "
         );
 
-
     await interaction.reply({
-
       content:
         `☠ **${character.name}** does not have an Aspect named **${aspectName}**.\n\n` +
         `Available Aspects: ${available}`,
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const difficultyModifier =
     Rules.DIFFICULTIES[
       difficulty
     ];
 
-
   if (
     difficultyModifier ===
     undefined
   ) {
-
     await interaction.reply({
-
       content:
         `☠ Unknown difficulty: **${difficulty}**.`,
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   if (
     forcedOmen &&
     state.hostOmens < 1
   ) {
-
     await interaction.reply({
-
       content:
         "☠ The Host has no Omens available to force into this Check.",
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const automaticFlaws =
     Rules.automaticFlawSources(
-
       state,
-
       aspect.id,
-
       {
         characterId:
           character.id
       }
-
     );
 
-
   const configuration = {
-
     aspectId:
       aspect.id,
 
@@ -2713,12 +2069,9 @@ async function handleCheckCommand(
     harmless,
 
     forcedOmen
-
   };
 
-
   const check = {
-
     id:
       randomUUID(),
 
@@ -2750,13 +2103,11 @@ async function handleCheckCommand(
 
     composition:
       Rules.calculateCheckComposition({
-
         ...configuration,
 
         automaticFlaws:
           automaticFlaws.wounds +
           automaticFlaws.strain
-
       }),
 
     automaticFlaws,
@@ -2808,26 +2159,20 @@ async function handleCheckCommand(
 
     discordMessageId:
       null
-
   };
-
 
   Rules.refreshCheckModifiers(
     state,
     check
   );
 
-
   state.currentCheck =
     check;
-
 
   state.selectedCharacterId =
     character.id;
 
-
   state.history.push({
-
     time:
       new Date().toISOString(),
 
@@ -2835,23 +2180,18 @@ async function handleCheckCommand(
       `${interaction.user.username} called for ` +
       `${character.name} to make a ${difficulty} ` +
       `${aspect.name} Check (${state.act}).`
-
   });
-
 
   state.history =
     state.history.slice(
       -250
     );
 
-
   saveCampaign(
     campaign
   );
 
-
   await interaction.reply({
-
     embeds: [
       requestedEmbed(
         campaign,
@@ -2864,33 +2204,21 @@ async function handleCheckCommand(
         state,
         check
       )
-
   });
 
-
-  // --------------------------------------------------
-  // Save Discord message ID so Perk activations from
-  // private menus can refresh the public Check card.
-  // --------------------------------------------------
-
   try {
-
     const message =
       await interaction.fetchReply();
-
 
     state.currentCheck.discordMessageId =
       message.id;
 
-
     saveCampaign(
       campaign
     );
-
   }
 
   catch (error) {
-
     console.warn(
       "Could not store Check message ID:"
     );
@@ -2898,15 +2226,8 @@ async function handleCheckCommand(
     console.warn(
       error.message
     );
-
   }
-
 }
-
-
-// ====================================================
-// Activate an active Check Perk
-// ====================================================
 
 async function activateCheckPerk(
   interaction,
@@ -2915,47 +2236,36 @@ async function activateCheckPerk(
   perkIndex,
   expectedRuleKey
 ) {
-
   const state =
     campaign.gameState;
 
-
   const check =
     state.currentCheck;
-
 
   if (
     !check ||
     check.phase ===
       Rules.PHASE_RESOLVED
   ) {
-
     await interaction.reply({
-
       content:
         "☠ This Check is no longer active.",
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const character =
     state.characters[
       characterIndex
     ];
 
-
   const perk =
     character?.perks?.[
       perkIndex
     ];
-
 
   if (
     !character ||
@@ -2963,27 +2273,15 @@ async function activateCheckPerk(
     perk.ruleKey !==
       expectedRuleKey
   ) {
-
     await interaction.reply({
-
       content:
         "☠ That Perk is no longer available.",
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
-
-  // --------------------------------------------------
-  // Permission:
-  // GM may activate for anybody.
-  // Player may activate only their own character's Perk.
-  // --------------------------------------------------
 
   if (
     !isGameMaster(
@@ -2996,28 +2294,15 @@ async function activateCheckPerk(
     ) !==
       interaction.user.id
   ) {
-
     await interaction.reply({
-
       content:
         "☠ You cannot activate that character's Perk.",
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
-
-  // --------------------------------------------------
-  // Recheck eligibility NOW.
-  //
-  // This protects against an old Perk menu being clicked
-  // after the Check has moved to another phase.
-  // --------------------------------------------------
 
   if (
     !Rules.Perks.eligible(
@@ -3027,21 +2312,15 @@ async function activateCheckPerk(
       check
     )
   ) {
-
     await interaction.reply({
-
       content:
         `☠ **${perk.name}** is no longer available at this point in the Check.`,
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const assignments =
     clone(
@@ -3049,74 +2328,52 @@ async function activateCheckPerk(
       {}
     );
 
-
   const store =
     State.createStore({
-
       storage:
         null,
 
       initialState:
         state
-
     });
 
-
   try {
-
     store.activatePerk(
       character.id,
       perk.id
     );
-
   }
 
   catch (error) {
-
     await interaction.reply({
-
       content:
         `☠ **${perk.name}** could not be activated: ${error.message}`,
-
       ephemeral:
         true
-
     });
 
     return;
-
   }
-
 
   const next =
     store.getState();
 
-
   next.assignments =
     assignments;
-
 
   campaign.gameState =
     next;
 
-
   saveCampaign(
     campaign
   );
-
 
   const rule =
     Rules.Perks.PERK_RULES[
       perk.ruleKey
     ];
 
-
-  // --------------------------------------------------
-  // Update the private Perk picker interaction.
-  // --------------------------------------------------
-
   await interaction.update({
-
     content:
       `✨ **${character.name} used ${perk.name}.**\n\n` +
       `${perkEffectText(rule)}`,
@@ -3124,136 +2381,88 @@ async function activateCheckPerk(
     embeds: [],
 
     components: []
-
   });
-
-
-  // --------------------------------------------------
-  // Refresh the original PUBLIC Check message.
-  // --------------------------------------------------
 
   await refreshPublicCheckMessage(
     interaction,
     campaign
   );
-
 }
-
-
-// ====================================================
-// Check button router
-// ====================================================
 
 async function handleButton(
   interaction
 ) {
-
   const parts =
     interaction.customId.split(
       "|"
     );
 
-
   const action =
     parts[0];
 
-
   const checkId =
     parts[1];
-
 
   if (
     !action.startsWith(
       "check_"
     )
   ) {
-
     return false;
-
   }
-
 
   const campaign =
     await campaignForInteraction(
       interaction
     );
 
-
   if (!campaign) {
-
     return true;
-
   }
-
 
   const state =
     campaign.gameState;
 
-
   const check =
     state.currentCheck;
-
 
   if (
     !check ||
     check.id !==
       checkId
   ) {
-
     await interaction.reply({
-
       content:
         "☠ This Check is no longer active.",
-
       ephemeral:
         true
-
     });
 
     return true;
-
   }
-
-
-  // ==================================================
-  // SHOW ACTIVE PERKS
-  //
-  // This deliberately happens BEFORE normal Check
-  // ownership validation because Eager to Help belongs
-  // to ANOTHER character.
-  // ==================================================
 
   if (
     action ===
     "check_perks"
   ) {
-
     const picker =
       buildPerkPicker(
         campaign,
         interaction.user.id
       );
 
-
     if (!picker) {
-
       await interaction.reply({
-
         content:
           "✨ You do not currently have an eligible active Perk for this Check.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
 
-
     await interaction.reply({
-
       embeds: [
         picker.embed
       ],
@@ -3263,30 +2472,20 @@ async function handleButton(
 
       ephemeral:
         true
-
     });
 
-
     return true;
-
   }
-
-
-  // ==================================================
-  // ACTIVATE PERK
-  // ==================================================
 
   if (
     action ===
     "check_perkuse"
   ) {
-
     const characterIndex =
       Number.parseInt(
         parts[2],
         10
       );
-
 
     const perkIndex =
       Number.parseInt(
@@ -3294,10 +2493,8 @@ async function handleButton(
         10
       );
 
-
     const expectedRuleKey =
       parts[4];
-
 
     if (
       !Number.isInteger(
@@ -3308,46 +2505,26 @@ async function handleButton(
       ) ||
       !expectedRuleKey
     ) {
-
       await interaction.reply({
-
         content:
           "☠ Invalid Perk selection.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
 
-
     await activateCheckPerk(
-
       interaction,
-
       campaign,
-
       characterIndex,
-
       perkIndex,
-
       expectedRuleKey
-
     );
 
-
     return true;
-
   }
-
-
-  // ==================================================
-  // Normal Check controls are restricted to the
-  // assigned Player or GM for an unassigned character.
-  // ==================================================
 
   if (
     !mayControlCheck(
@@ -3356,94 +2533,68 @@ async function handleButton(
       interaction.user.id
     )
   ) {
-
     const assigned =
       assignedUserId(
         campaign,
         check.characterId
       );
 
-
     await interaction.reply({
-
       content:
         assigned
-          ? `☠ Only <@${assigned}> may control this Check.`
+          ? `☠ Only <@${assigned}> or the Game Master may control this Check.`
           : "☠ Only the Game Master may control this unassigned character's Check.",
 
       ephemeral:
         true
-
     });
 
     return true;
-
   }
-
-
-  // ==================================================
-  // REACH INTO THE BAG
-  // ==================================================
 
   if (
     action ===
     "check_draw"
   ) {
-
     if (
       check.phase !==
       Rules.PHASE_REQUESTED
     ) {
-
       await interaction.reply({
-
         content:
           "☠ The dice have already been drawn for this Check.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const drawState =
       clone(
         state
       );
 
-
     drawState.currentCheck =
       null;
-
 
     drawState.selectedCharacterId =
       check.characterId;
 
-
     drawState.act =
       check.act;
 
-
     const store =
       State.createStore({
-
         storage:
           null,
 
         initialState:
           drawState
-
       });
 
-
     try {
-
       store.drawCheck({
-
         ...check.configuration,
 
         automaticFlawSnapshot:
@@ -3451,31 +2602,22 @@ async function handleButton(
 
         compositionSnapshot:
           check.composition
-
       });
-
     }
 
     catch (error) {
-
       await interaction.reply({
-
         content:
           `☠ The dice could not be drawn: ${error.message}`,
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const next =
       store.getState();
-
 
     next.assignments =
       clone(
@@ -3483,23 +2625,15 @@ async function handleButton(
         {}
       );
 
-
     next.act =
       state.act;
-
 
     next.selectedCharacterId =
       state.selectedCharacterId;
 
-
-    // ------------------------------------------------
-    // Preserve Discord and pre-draw Perk information.
-    // ------------------------------------------------
-
     Object.assign(
       next.currentCheck,
       {
-
         id:
           check.id,
 
@@ -3543,28 +2677,20 @@ async function handleButton(
           check.discordMessageId,
 
         configuration: {
-
           ...check.configuration,
-
           ...next.currentCheck.configuration
-
         }
-
       }
     );
 
-
     campaign.gameState =
       next;
-
 
     saveCampaign(
       campaign
     );
 
-
     await interaction.update({
-
       embeds: [
         drawnEmbed(
           next,
@@ -3577,43 +2703,28 @@ async function handleButton(
           next,
           next.currentCheck
         )
-
     });
 
-
     return true;
-
   }
-
-
-  // ==================================================
-  // ROLL DICE
-  // ==================================================
 
   if (
     action ===
     "check_roll"
   ) {
-
     if (
       check.phase !==
       Rules.PHASE_DRAWN
     ) {
-
       await interaction.reply({
-
         content:
           "☠ This Check is not ready to roll.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const assignments =
       clone(
@@ -3621,61 +2732,44 @@ async function handleButton(
         {}
       );
 
-
     const store =
       State.createStore({
-
         storage:
           null,
 
         initialState:
           state
-
       });
 
-
     try {
-
       store.rollCheck();
-
     }
 
     catch (error) {
-
       await interaction.reply({
-
         content:
           `☠ The dice could not be rolled: ${error.message}`,
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const next =
       store.getState();
 
-
     next.assignments =
       assignments;
 
-
     campaign.gameState =
       next;
-
 
     saveCampaign(
       campaign
     );
 
-
     await interaction.update({
-
       embeds: [
         rolledEmbed(
           next,
@@ -3688,43 +2782,28 @@ async function handleButton(
           next,
           next.currentCheck
         )
-
     });
 
-
     return true;
-
   }
-
-
-  // ==================================================
-  // FINISH CHECK
-  // ==================================================
 
   if (
     action ===
     "check_finish"
   ) {
-
     if (
       check.phase !==
       Rules.PHASE_ROLLED
     ) {
-
       await interaction.reply({
-
         content:
           "☠ This Check cannot be finished yet.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const assignments =
       clone(
@@ -3732,82 +2811,60 @@ async function handleButton(
         {}
       );
 
-
     const store =
       State.createStore({
-
         storage:
           null,
 
         initialState:
           state
-
       });
-
 
     let message =
       "Check resolved.";
 
-
     try {
-
       const selected =
         Rules.getSelectedRoll(
           check
         );
 
-
       if (
         check.configuration.harmless &&
         selected?.wound?.triggered
       ) {
-
         message =
           `Harmless Omen: **${check.configuration.aspect}** becomes Strained.`;
-
       }
 
-
       store.finishCheck();
-
     }
 
     catch (error) {
-
       await interaction.reply({
-
         content:
           `☠ The Check could not be finished: ${error.message}`,
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const next =
       store.getState();
 
-
     next.assignments =
       assignments;
 
-
     campaign.gameState =
       next;
-
 
     saveCampaign(
       campaign
     );
 
-
     await interaction.update({
-
       embeds: [
         completedEmbed(
           next,
@@ -3817,43 +2874,28 @@ async function handleButton(
       ],
 
       components: []
-
     });
 
-
     return true;
-
   }
-
-
-  // ==================================================
-  // TAKE WOUND
-  // ==================================================
 
   if (
     action ===
     "check_wound"
   ) {
-
     if (
       check.phase !==
       Rules.PHASE_AWAITING_WOUND
     ) {
-
       await interaction.reply({
-
         content:
           "☠ There is no unresolved Omen Wound.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const assignments =
       clone(
@@ -3861,62 +2903,45 @@ async function handleButton(
         {}
       );
 
-
     const store =
       State.createStore({
-
         storage:
           null,
 
         initialState:
           state
-
       });
 
-
     try {
-
       store.takeWound();
-
     }
 
     catch (error) {
-
       await interaction.reply({
-
         content:
           `☠ The Wound could not be resolved: ${error.message}`,
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const next =
       store.getState();
 
-
     next.assignments =
       assignments;
 
-
     campaign.gameState =
       next;
-
 
     saveCampaign(
       campaign
     );
 
-
     const resolvedCheck =
       next.currentCheck;
-
 
     const character =
       next.characters.find(
@@ -3925,31 +2950,23 @@ async function handleButton(
           resolvedCheck.characterId
       );
 
-
     let resolution;
-
 
     if (
       character.active
     ) {
-
       resolution =
         `**${character.name}** takes an Omen Wound.\n` +
         `Current Wounds: **${character.wounds}**`;
-
     }
 
     else {
-
       resolution =
         `**${character.name}** succumbs to Death or Despair.\n` +
         "Their Wound Omens return to the bag.";
-
     }
 
-
     await interaction.update({
-
       embeds: [
         completedEmbed(
           next,
@@ -3959,43 +2976,28 @@ async function handleButton(
       ],
 
       components: []
-
     });
 
-
     return true;
-
   }
-
-
-  // ==================================================
-  // CHEAT DEATH
-  // ==================================================
 
   if (
     action ===
     "check_cheat"
   ) {
-
     if (
       check.phase !==
       Rules.PHASE_AWAITING_WOUND
     ) {
-
       await interaction.reply({
-
         content:
           "☠ Cheat Death is not available right now.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     if (
       !Rules.canCheatDeath(
@@ -4003,21 +3005,15 @@ async function handleButton(
         check
       )
     ) {
-
       await interaction.reply({
-
         content:
           "☠ This character cannot Cheat Death on this Check.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const assignments =
       clone(
@@ -4025,62 +3021,45 @@ async function handleButton(
         {}
       );
 
-
     const store =
       State.createStore({
-
         storage:
           null,
 
         initialState:
           state
-
       });
 
-
     try {
-
       store.cheatDeath();
-
     }
 
     catch (error) {
-
       await interaction.reply({
-
         content:
           `☠ Cheat Death failed: ${error.message}`,
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const next =
       store.getState();
 
-
     next.assignments =
       assignments;
 
-
     campaign.gameState =
       next;
-
 
     saveCampaign(
       campaign
     );
 
-
     const resolvedCheck =
       next.currentCheck;
-
 
     const character =
       next.characters.find(
@@ -4089,62 +3068,42 @@ async function handleButton(
           resolvedCheck.characterId
       );
 
-
     await interaction.update({
-
       embeds: [
         completedEmbed(
-
           next,
-
           resolvedCheck,
 
           `**${character.name}** Cheats Death.\n` +
           "One Safe die is permanently removed from the bag.\n" +
           `Safe dice remaining: **${next.bag.safe}**`
-
         )
       ],
 
       components: []
-
     });
 
-
     return true;
-
   }
-
-
-  // ==================================================
-  // VALIANT SACRIFICE
-  // ==================================================
 
   if (
     action ===
     "check_valiant"
   ) {
-
     if (
       check.phase !==
         Rules.PHASE_DRAWN ||
       !check.valiantAvailable
     ) {
-
       await interaction.reply({
-
         content:
           "☠ Valiant Sacrifice is not available for this Check.",
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const assignments =
       clone(
@@ -4152,62 +3111,45 @@ async function handleButton(
         {}
       );
 
-
     const store =
       State.createStore({
-
         storage:
           null,
 
         initialState:
           state
-
       });
 
-
     try {
-
       store.valiantSacrifice();
-
     }
 
     catch (error) {
-
       await interaction.reply({
-
         content:
           `☠ Valiant Sacrifice could not be resolved: ${error.message}`,
-
         ephemeral:
           true
-
       });
 
       return true;
-
     }
-
 
     const next =
       store.getState();
 
-
     next.assignments =
       assignments;
 
-
     campaign.gameState =
       next;
-
 
     saveCampaign(
       campaign
     );
 
-
     const resolvedCheck =
       next.currentCheck;
-
 
     const character =
       next.characters.find(
@@ -4216,9 +3158,7 @@ async function handleButton(
           resolvedCheck.characterId
       );
 
-
     await interaction.update({
-
       embeds: [
 
         new EmbedBuilder()
@@ -4234,7 +3174,6 @@ async function handleButton(
           .addFields(
 
             {
-
               name:
                 "Result",
 
@@ -4243,11 +3182,9 @@ async function handleButton(
 
               inline:
                 true
-
             },
 
             {
-
               name:
                 "Status",
 
@@ -4256,11 +3193,9 @@ async function handleButton(
 
               inline:
                 true
-
             },
 
             {
-
               name:
                 "Bag",
 
@@ -4271,43 +3206,27 @@ async function handleButton(
 
               inline:
                 false
-
             }
 
           )
 
           .setFooter({
-
             text:
               "Their Wound Omens return to the bag."
-
           })
 
       ],
 
       components: []
-
     });
 
-
     return true;
-
   }
 
-
   return false;
-
 }
 
-
-// ====================================================
-// Exports
-// ====================================================
-
 module.exports = {
-
   handleCheckCommand,
-
   handleButton
-
 };
