@@ -8,7 +8,8 @@ const {
 } = require("discord.js");
 
 const {
-  commands
+  commands,
+  printCommandList
 } = require("./deploy-commands");
 
 
@@ -43,6 +44,39 @@ if (
 
 
 // ====================================================
+// Validate imported command definitions
+// ====================================================
+
+if (
+  !Array.isArray(
+    commands
+  )
+) {
+
+  console.error(
+    "Command definitions could not be loaded from deploy-commands.js."
+  );
+
+  process.exit(1);
+
+}
+
+
+if (
+  commands.length ===
+  0
+) {
+
+  console.error(
+    "No Discord command definitions were found."
+  );
+
+  process.exit(1);
+
+}
+
+
+// ====================================================
 // REST
 // ====================================================
 
@@ -52,50 +86,6 @@ const rest =
   }).setToken(
     process.env.DISCORD_TOKEN
   );
-
-
-// ====================================================
-// Global command list
-// ====================================================
-
-function printCommandList() {
-
-  console.log(
-    "Globally available commands:"
-  );
-
-  console.log("  /ping");
-  console.log("  /game create");
-
-  console.log("  /character create");
-  console.log("  /character edit");
-  console.log("  /character import");
-  console.log("  /character export");
-  console.log("  /character list");
-  console.log("  /character assign");
-  console.log("  /character unassign");
-  console.log("  /character mine");
-
-  console.log("  /check");
-
-  console.log("  /perk use");
-  console.log("  /perk status");
-
-  console.log("  /gm status");
-  console.log("  /gm act");
-  console.log("  /gm scene-next");
-  console.log("  /gm omen-add");
-  console.log("  /gm omen-remove");
-  console.log("  /gm story-size");
-  console.log("  /gm cancel-check");
-  console.log("  /gm strain-add");
-  console.log("  /gm strain-remove");
-  console.log("  /gm wound-add");
-  console.log("  /gm wound-remove");
-  console.log("  /gm revive");
-  console.log("  /gm perk-reset");
-
-}
 
 
 // ====================================================
@@ -133,9 +123,6 @@ async function deployGlobalCommands() {
       ""
     );
 
-    console.log(
-      "WARNING:"
-    );
 
     console.log(
       "These commands will be registered globally."
@@ -148,6 +135,7 @@ async function deployGlobalCommands() {
     console.log(
       "where this application is installed."
     );
+
 
     console.log(
       ""
@@ -185,6 +173,7 @@ async function deployGlobalCommands() {
       ""
     );
 
+
     console.log(
       "Global deployment complete."
     );
@@ -210,5 +199,9 @@ async function deployGlobalCommands() {
 
 }
 
+
+// ====================================================
+// Run deployment
+// ====================================================
 
 deployGlobalCommands();

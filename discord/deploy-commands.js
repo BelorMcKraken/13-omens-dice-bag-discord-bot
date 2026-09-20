@@ -1,3 +1,5 @@
+"use strict";
+
 require("dotenv").config();
 
 const {
@@ -6,6 +8,10 @@ const {
   SlashCommandBuilder
 } = require("discord.js");
 
+
+// ====================================================
+// Command definitions
+// ====================================================
 
 const commands = [
 
@@ -62,6 +68,10 @@ const commands = [
       "Manage 13 Omens characters."
     )
 
+    // --------------------------------------------------
+    // /character create
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("create")
@@ -79,6 +89,10 @@ const commands = [
             .setMaxLength(120)
         )
     )
+
+    // --------------------------------------------------
+    // /character edit
+    // --------------------------------------------------
 
     .addSubcommand(subcommand =>
       subcommand
@@ -98,6 +112,10 @@ const commands = [
         )
     )
 
+    // --------------------------------------------------
+    // /character import
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("import")
@@ -114,6 +132,10 @@ const commands = [
             .setRequired(true)
         )
     )
+
+    // --------------------------------------------------
+    // /character export
+    // --------------------------------------------------
 
     .addSubcommand(subcommand =>
       subcommand
@@ -133,6 +155,10 @@ const commands = [
         )
     )
 
+    // --------------------------------------------------
+    // /character list
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("list")
@@ -140,6 +166,10 @@ const commands = [
           "List the characters in this campaign."
         )
     )
+
+    // --------------------------------------------------
+    // /character assign
+    // --------------------------------------------------
 
     .addSubcommand(subcommand =>
       subcommand
@@ -168,6 +198,10 @@ const commands = [
         )
     )
 
+    // --------------------------------------------------
+    // /character unassign
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("unassign")
@@ -185,6 +219,10 @@ const commands = [
             .setMaxLength(120)
         )
     )
+
+    // --------------------------------------------------
+    // /character mine
+    // --------------------------------------------------
 
     .addSubcommand(subcommand =>
       subcommand
@@ -314,6 +352,63 @@ const commands = [
 
 
   // ==================================================
+  // /perk
+  // ==================================================
+
+  new SlashCommandBuilder()
+    .setName("perk")
+    .setDescription(
+      "View or use 13 Omens Perks."
+    )
+
+    // --------------------------------------------------
+    // /perk use
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("use")
+        .setDescription(
+          "Use an eligible automated Perk outside a Check."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character whose Perk should be used. GM only when specifying another character."
+            )
+            .setRequired(false)
+            .setMaxLength(120)
+        )
+    )
+
+    // --------------------------------------------------
+    // /perk status
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("status")
+        .setDescription(
+          "View current Perk status for a character."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character whose Perk status should be shown. GM only when specifying another character."
+            )
+            .setRequired(false)
+            .setMaxLength(120)
+        )
+    )
+
+    .toJSON(),
+
+
+  // ==================================================
   // /gm
   // ==================================================
 
@@ -334,7 +429,6 @@ const commands = [
           "View current campaign, bag, Omen, Act, and Check status."
         )
     )
-
 
     // --------------------------------------------------
     // /gm act
@@ -376,7 +470,6 @@ const commands = [
         )
     )
 
-
     // --------------------------------------------------
     // /gm scene-next
     // --------------------------------------------------
@@ -388,7 +481,6 @@ const commands = [
           "Advance to the next Scene."
         )
     )
-
 
     // --------------------------------------------------
     // /gm omen-add
@@ -402,7 +494,6 @@ const commands = [
         )
     )
 
-
     // --------------------------------------------------
     // /gm omen-remove
     // --------------------------------------------------
@@ -414,7 +505,6 @@ const commands = [
           "Return one Omen from the bag to the Host pool."
         )
     )
-
 
     // --------------------------------------------------
     // /gm story-size
@@ -439,7 +529,6 @@ const commands = [
         )
     )
 
-
     // --------------------------------------------------
     // /gm cancel-check
     // --------------------------------------------------
@@ -452,33 +541,285 @@ const commands = [
         )
     )
 
+    // --------------------------------------------------
+    // /gm strain-add
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("strain-add")
+        .setDescription(
+          "Add Strain to one specific Aspect."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character receiving Strain."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("aspect")
+            .setDescription(
+              "Aspect receiving Strain."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+    )
+
+    // --------------------------------------------------
+    // /gm strain-remove
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("strain-remove")
+        .setDescription(
+          "Remove Strain from one specific Aspect."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character whose Strain should be removed."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("aspect")
+            .setDescription(
+              "Aspect whose Strain should be removed."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+    )
+
+    // --------------------------------------------------
+    // /gm wound-add
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("wound-add")
+        .setDescription(
+          "Manually give one Wound to a character."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character receiving the Wound."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+    )
+
+    // --------------------------------------------------
+    // /gm wound-remove
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("wound-remove")
+        .setDescription(
+          "Manually remove one Wound from a character."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character whose Wound should be removed."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+    )
+
+    // --------------------------------------------------
+    // /gm revive
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("revive")
+        .setDescription(
+          "Reactivate a character who died or succumbed to despair."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character to revive."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+    )
+
+    // --------------------------------------------------
+    // /gm perk-reset
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("perk-reset")
+        .setDescription(
+          "Reset recorded Perk usage for one character."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character whose Perk usage should be reset."
+            )
+            .setRequired(true)
+            .setMaxLength(120)
+        )
+    )
+
     .toJSON()
 
 ];
 
 
 // ====================================================
-// REST
+// Command list
 // ====================================================
 
-const rest =
-  new REST({
-    version: "10"
-  }).setToken(
-    process.env.DISCORD_TOKEN
+function printCommandList() {
+
+  console.log(
+    "Available commands:"
   );
 
+  console.log("  /ping");
+
+  console.log("  /game create");
+
+  console.log("  /character create");
+  console.log("  /character edit");
+  console.log("  /character import");
+  console.log("  /character export");
+  console.log("  /character list");
+  console.log("  /character assign");
+  console.log("  /character unassign");
+  console.log("  /character mine");
+
+  console.log("  /check");
+
+  console.log("  /perk use");
+  console.log("  /perk status");
+
+  console.log("  /gm status");
+  console.log("  /gm act");
+  console.log("  /gm scene-next");
+  console.log("  /gm omen-add");
+  console.log("  /gm omen-remove");
+  console.log("  /gm story-size");
+  console.log("  /gm cancel-check");
+  console.log("  /gm strain-add");
+  console.log("  /gm strain-remove");
+  console.log("  /gm wound-add");
+  console.log("  /gm wound-remove");
+  console.log("  /gm revive");
+  console.log("  /gm perk-reset");
+
+}
+
 
 // ====================================================
-// Deploy
+// Guild deployment
 // ====================================================
 
 async function deployCommands() {
 
+  // --------------------------------------------------
+  // Environment validation
+  // --------------------------------------------------
+
+  if (
+    !process.env.DISCORD_TOKEN
+  ) {
+
+    throw new Error(
+      "DISCORD_TOKEN is missing from .env"
+    );
+
+  }
+
+
+  if (
+    !process.env.DISCORD_CLIENT_ID
+  ) {
+
+    throw new Error(
+      "DISCORD_CLIENT_ID is missing from .env"
+    );
+
+  }
+
+
+  if (
+    !process.env.DISCORD_GUILD_ID
+  ) {
+
+    throw new Error(
+      "DISCORD_GUILD_ID is missing from .env. " +
+      "This variable is required only for guild/test deployment."
+    );
+
+  }
+
+
+  const rest =
+    new REST({
+      version: "10"
+    }).setToken(
+      process.env.DISCORD_TOKEN
+    );
+
+
   try {
 
     console.log(
-      "Registering Discord commands..."
+      "========================================"
+    );
+
+    console.log(
+      "13 Omens — GUILD Discord Deployment"
+    );
+
+    console.log(
+      "========================================"
+    );
+
+
+    console.log(
+      `Application ID: ${process.env.DISCORD_CLIENT_ID}`
+    );
+
+    console.log(
+      `Guild ID: ${process.env.DISCORD_GUILD_ID}`
+    );
+
+    console.log(
+      `Preparing to register ${commands.length} command groups...`
     );
 
 
@@ -490,38 +831,23 @@ async function deployCommands() {
       ),
 
       {
-        body: commands
+        body:
+          commands
       }
 
     );
 
 
     console.log(
-      "Successfully registered Discord commands."
+      "Successfully registered Discord commands for the configured guild."
     );
 
     console.log(
-      "Available commands:"
+      ""
     );
 
-    console.log("  /ping");
-    console.log("  /game create");
-    console.log("  /character create");
-    console.log("  /character edit");
-    console.log("  /character import");
-    console.log("  /character export");
-    console.log("  /character list");
-    console.log("  /character assign");
-    console.log("  /character unassign");
-    console.log("  /character mine");
-    console.log("  /check");
-    console.log("  /gm status");
-    console.log("  /gm act");
-    console.log("  /gm scene-next");
-    console.log("  /gm omen-add");
-    console.log("  /gm omen-remove");
-    console.log("  /gm story-size");
-    console.log("  /gm cancel-check");
+
+    printCommandList();
 
   }
 
@@ -535,9 +861,52 @@ async function deployCommands() {
       error
     );
 
+
+    process.exitCode =
+      1;
+
   }
 
 }
 
 
-deployCommands();
+// ====================================================
+// Exports
+// ====================================================
+
+module.exports = {
+  commands,
+  deployCommands,
+  printCommandList
+};
+
+
+// ====================================================
+// Run only when executed directly
+// ====================================================
+
+if (
+  require.main ===
+  module
+) {
+
+  deployCommands()
+    .catch(
+      error => {
+
+        console.error(
+          "Guild deployment failed:"
+        );
+
+        console.error(
+          error
+        );
+
+
+        process.exitCode =
+          1;
+
+      }
+    );
+
+}
