@@ -557,6 +557,159 @@ function findCharacterById(
 
 
 // ====================================================
+// Find character by ID or name
+// ====================================================
+
+function findCharacterByInput(
+  campaign,
+  value
+) {
+
+  return (
+    findCharacterById(
+      campaign,
+      value
+    ) ||
+    findCharacterByName(
+      campaign,
+      value
+    )
+  );
+
+}
+
+
+// ====================================================
+// Remove character from Discord campaign
+// ====================================================
+
+function removeCharacterFromCampaign(
+  campaign,
+  characterId
+) {
+
+  const character =
+    findCharacterById(
+      campaign,
+      characterId
+    );
+
+
+  if (!character) {
+
+    throw new Error(
+      "Character not found."
+    );
+
+  }
+
+
+  const currentCheck =
+    campaign.gameState.currentCheck ||
+    campaign.gameState.pendingCheck ||
+    null;
+
+
+  if (
+    currentCheck &&
+    currentCheck.characterId ===
+      character.id
+  ) {
+
+    throw new Error(
+      "Cancel or resolve this character's pending Check before removal."
+    );
+
+  }
+
+
+  const wounds =
+    Number.isInteger(
+      character.wounds
+    )
+      ? character.wounds
+      : 0;
+
+
+  if (wounds > 0) {
+
+    campaign.gameState.bag ??= {
+      safe:
+        8,
+      omen:
+        0
+    };
+
+    campaign.gameState.bag.omen =
+      Number.isInteger(
+        campaign.gameState.bag.omen
+      )
+        ? campaign.gameState.bag.omen +
+          wounds
+        : wounds;
+
+  }
+
+
+  campaign.gameState.characters =
+    campaign.gameState.characters.filter(
+      entry =>
+        entry.id !==
+        character.id
+    );
+
+
+  if (
+    campaign.gameState.assignments &&
+    typeof campaign.gameState.assignments ===
+      "object"
+  ) {
+
+    delete campaign.gameState.assignments[
+      character.id
+    ];
+
+  }
+
+
+  if (
+    campaign.gameState.selectedCharacterId ===
+    character.id
+  ) {
+
+    campaign.gameState.selectedCharacterId =
+      campaign.gameState.characters[0]?.id ||
+      null;
+
+  }
+
+
+  if (
+    Array.isArray(
+      campaign.gameState.perishedCharacterIds
+    )
+  ) {
+
+    campaign.gameState.perishedCharacterIds =
+      campaign.gameState.perishedCharacterIds.filter(
+        id =>
+          id !==
+          character.id
+      );
+
+  }
+
+
+  return {
+    character,
+    woundsReturned:
+      wounds
+  };
+
+}
+
+
+// ====================================================
 // Get characters owned by Discord user
 // ====================================================
 
@@ -935,6 +1088,10 @@ module.exports = {
   findCharacterByName,
 
   findCharacterById,
+
+  findCharacterByInput,
+
+  removeCharacterFromCampaign,
 
   normalizeCharacterName,
 

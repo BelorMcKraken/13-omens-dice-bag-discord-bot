@@ -108,6 +108,7 @@ const commands = [
               "Name of the character to edit."
             )
             .setRequired(true)
+            .setAutocomplete(true)
             .setMaxLength(120)
         )
     )
@@ -151,6 +152,7 @@ const commands = [
               "Name of the character to export."
             )
             .setRequired(true)
+            .setAutocomplete(true)
             .setMaxLength(120)
         )
     )
@@ -185,6 +187,7 @@ const commands = [
               "Name of the character."
             )
             .setRequired(true)
+            .setAutocomplete(true)
             .setMaxLength(120)
         )
 
@@ -216,6 +219,30 @@ const commands = [
               "Name of the character."
             )
             .setRequired(true)
+            .setAutocomplete(true)
+            .setMaxLength(120)
+        )
+    )
+
+    // --------------------------------------------------
+    // /character remove
+    // --------------------------------------------------
+
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("remove")
+        .setDescription(
+          "Permanently remove a character from this campaign."
+        )
+
+        .addStringOption(option =>
+          option
+            .setName("character")
+            .setDescription(
+              "Character to remove from the campaign."
+            )
+            .setRequired(true)
+            .setAutocomplete(true)
             .setMaxLength(120)
         )
     )
@@ -719,6 +746,7 @@ function printCommandList() {
   console.log("  /character list");
   console.log("  /character assign");
   console.log("  /character unassign");
+  console.log("  /character remove");
   console.log("  /character mine");
 
   console.log("  /check");

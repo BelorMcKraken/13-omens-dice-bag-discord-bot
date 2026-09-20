@@ -25,8 +25,10 @@ const {
 const {
   importCharacterIntoCampaign,
   findCharacterByName,
+  findCharacterByInput,
   getCharacterOwnerId,
   setCharacterOwner,
+  removeCharacterFromCampaign,
   exportCharacter,
   characterFilename
 } = require("./character-manager");
@@ -340,7 +342,9 @@ async function handleAutocomplete(
 
   if (
     interaction.commandName !==
-    "check"
+      "check" &&
+    interaction.commandName !==
+      "character"
   ) {
 
     await interaction.respond(
@@ -367,63 +371,21 @@ async function handleAutocomplete(
 
 
   const campaign =
-  getCampaign(
-    interaction.guildId,
-    interaction.channelId
-  );
-
-
-console.log(
-  "[AUTOCOMPLETE]",
-  {
-    command:
-      interaction.commandName,
-
-    focused:
-      interaction.options.getFocused(
-        true
-      ),
-
-    guildId:
+    getCampaign(
       interaction.guildId,
+      interaction.channelId
+    );
 
-    channelId:
-      interaction.channelId,
 
-    campaignFound:
-      Boolean(
-        campaign
-      ),
+  if (!campaign) {
 
-    campaignName:
-      campaign?.name ||
-      null,
+    await interaction.respond(
+      []
+    );
 
-    characterCount:
-      campaign?.gameState?.characters?.length ??
-      null,
+    return;
 
-    characterNames:
-      (
-        campaign?.gameState?.characters ||
-        []
-      ).map(
-        character =>
-          character.name
-      )
   }
-);
-
-
-if (!campaign) {
-
-  await interaction.respond(
-    []
-  );
-
-  return;
-
-}
 
 
   const focused =
@@ -436,6 +398,136 @@ if (!campaign) {
     normalizeAutocompleteText(
       focused.value
     );
+
+
+  if (
+    interaction.commandName ===
+    "character"
+  ) {
+
+    const subcommand =
+      interaction.options.getSubcommand(
+        false
+      );
+
+
+    if (
+      ![
+        "edit",
+        "export",
+        "assign",
+        "unassign",
+        "remove"
+      ].includes(
+        subcommand
+      )
+    ) {
+
+      await interaction.respond(
+        []
+      );
+
+      return;
+
+    }
+
+
+    const userIsGameMaster =
+      isGameMaster(
+        campaign,
+        interaction.user.id
+      );
+
+
+    let characters =
+      campaign.gameState.characters ||
+      [];
+
+
+    if (
+      subcommand ===
+        "edit" ||
+      subcommand ===
+        "export"
+    ) {
+
+      characters =
+        characters.filter(
+          character =>
+            canManageCharacter(
+              campaign,
+              character,
+              interaction.user.id
+            )
+        );
+
+    }
+
+    else if (!userIsGameMaster) {
+
+      characters = [];
+
+    }
+
+
+    if (
+      subcommand ===
+      "unassign"
+    ) {
+
+      characters =
+        characters.filter(
+          character =>
+            Boolean(
+              getAssignedUserId(
+                campaign,
+                character.id
+              )
+            )
+        );
+
+    }
+
+
+    const choices =
+      characters
+        .filter(
+          character =>
+            !searchText ||
+            normalizeAutocompleteText(
+              character.name
+            ).includes(
+              searchText
+            )
+        )
+        .slice(
+          0,
+          25
+        )
+        .map(
+          character => ({
+
+            name:
+              autocompleteChoiceName(
+                character.active === false
+                  ? `${character.name} (Inactive)`
+                  : character.name
+              ),
+
+            value:
+              character.id
+
+          })
+        );
+
+
+    await interaction.respond(
+      choices
+    );
+
+    return;
+
+  }
 
 
   if (
@@ -605,8 +697,7 @@ async function sendInteractionError(
     ) {
 
       await interaction.followUp({
-
-        content:
+                content:
           message,
 
         ephemeral:
@@ -1304,9 +1395,7 @@ function buildCharacterEditorEmbed(
         aspect.type ===
         "story"
     );
-
-
-  const coreText =
+      const coreText =
     coreAspects.length
       ? coreAspects
           .map(
@@ -1742,6 +1831,21 @@ async function handleCharacterCommand(
 
   if (
     subcommand ===
+    "remove"
+  ) {
+
+    await handleCharacterRemove(
+      interaction,
+      campaign
+    );
+
+    return;
+
+  }
+
+
+  if (
+    subcommand ===
     "mine"
   ) {
 
@@ -1955,7 +2059,7 @@ async function handleCharacterEdit(
 ) {
 
   const character =
-    findCharacterByName(
+    findCharacterByInput(
       campaign,
       interaction.options.getString(
         "character",
@@ -1991,7 +2095,7 @@ async function handleCharacterEdit(
         `☠ You are not allowed to edit **${character.name}**.`,
       ephemeral:
         true
-    });
+            });
 
     return;
 
@@ -2170,7 +2274,7 @@ async function handleCharacterExport(
 ) {
 
   const character =
-    findCharacterByName(
+    findCharacterByInput(
       campaign,
       interaction.options.getString(
         "name",
@@ -2370,7 +2474,7 @@ async function handleCharacterAssign(
 
 
   const character =
-    findCharacterByName(
+    findCharacterByInput(
       campaign,
       interaction.options.getString(
         "character",
@@ -2501,7 +2605,7 @@ async function handleCharacterUnassign(
 
 
   const character =
-    findCharacterByName(
+    findCharacterByInput(
       campaign,
       interaction.options.getString(
         "character",
@@ -2538,6 +2642,98 @@ async function handleCharacterUnassign(
     content:
       `☠ **${character.name}** is now unassigned.`
   });
+
+}
+
+
+// ====================================================
+// Remove character
+// ====================================================
+
+async function handleCharacterRemove(
+  interaction,
+  campaign
+) {
+
+  if (
+    !isGameMaster(
+      campaign,
+      interaction.user.id
+    )
+  ) {
+
+    await interaction.reply({
+      content:
+        "☠ Only the Game Master can remove characters.",
+      ephemeral:
+        true
+    });
+
+    return;
+
+  }
+
+
+  const character =
+    findCharacterByInput(
+      campaign,
+      interaction.options.getString(
+        "character",
+        true
+      )
+    );
+
+
+  if (!character) {
+
+    await interaction.reply({
+      content:
+        "☠ Character not found.",
+      ephemeral:
+        true
+    });
+
+    return;
+
+  }
+
+
+  try {
+
+    const result =
+      removeCharacterFromCampaign(
+        campaign,
+        character.id
+      );
+
+
+    saveCampaignState(
+      campaign
+    );
+
+
+    await interaction.reply({
+      content:
+        `☠ **${result.character.name}** was permanently removed from this campaign.` +
+        (
+          result.woundsReturned > 0
+            ? ` ${result.woundsReturned} Wound Omen${result.woundsReturned === 1 ? " was" : "s were"} returned to the bag.`
+            : ""
+        )
+    });
+
+  }
+
+  catch (error) {
+
+    await interaction.reply({
+      content:
+        `☠ Could not remove character: ${error.message}`,
+      ephemeral:
+        true
+    });
+
+  }
 
 }
 
@@ -2599,7 +2795,7 @@ async function handleButton(
 
   const [
     action,
-    characterId,
+        characterId,
     extra
   ] =
     interaction.customId.split(
@@ -3299,8 +3495,7 @@ async function showDetailsModal(
 
   const description =
     new TextInputBuilder()
-
-      .setCustomId(
+          .setCustomId(
         "description"
       )
 
@@ -3979,4 +4174,4 @@ client.login(
     );
 
   }
-);   
+);
