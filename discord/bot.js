@@ -367,21 +367,63 @@ async function handleAutocomplete(
 
 
   const campaign =
-    getCampaign(
+  getCampaign(
+    interaction.guildId,
+    interaction.channelId
+  );
+
+
+console.log(
+  "[AUTOCOMPLETE]",
+  {
+    command:
+      interaction.commandName,
+
+    focused:
+      interaction.options.getFocused(
+        true
+      ),
+
+    guildId:
       interaction.guildId,
-      interaction.channelId
-    );
 
+    channelId:
+      interaction.channelId,
 
-  if (!campaign) {
+    campaignFound:
+      Boolean(
+        campaign
+      ),
 
-    await interaction.respond(
-      []
-    );
+    campaignName:
+      campaign?.name ||
+      null,
 
-    return;
+    characterCount:
+      campaign?.gameState?.characters?.length ??
+      null,
 
+    characterNames:
+      (
+        campaign?.gameState?.characters ||
+        []
+      ).map(
+        character =>
+          character.name
+      )
   }
+);
+
+
+if (!campaign) {
+
+  await interaction.respond(
+    []
+  );
+
+  return;
+
+}
 
 
   const focused =
