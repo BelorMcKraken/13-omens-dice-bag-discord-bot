@@ -214,6 +214,7 @@ const commands = [
           "Character making the Check."
         )
         .setRequired(true)
+        .setAutocomplete(true)
         .setMaxLength(120)
     )
 
@@ -224,6 +225,7 @@ const commands = [
           "Core or Story Aspect used for the Check."
         )
         .setRequired(true)
+        .setAutocomplete(true)
         .setMaxLength(120)
     )
 
@@ -312,55 +314,6 @@ const commands = [
 
 
   // ==================================================
-  // /perk
-  // ==================================================
-
-  new SlashCommandBuilder()
-    .setName("perk")
-    .setDescription(
-      "Use and view 13 Omens Perks."
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("use")
-        .setDescription(
-          "Use an available Perk outside of a Check."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "GM only: character whose Perk will be used."
-            )
-            .setRequired(false)
-            .setMaxLength(120)
-        )
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("status")
-        .setDescription(
-          "View Perks and their current usage status."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "GM only: character whose Perks will be viewed."
-            )
-            .setRequired(false)
-            .setMaxLength(120)
-        )
-    )
-
-    .toJSON(),
-
-
-  // ==================================================
   // /gm
   // ==================================================
 
@@ -370,6 +323,10 @@ const commands = [
       "Game Master controls for the current 13 Omens campaign."
     )
 
+    // --------------------------------------------------
+    // /gm status
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("status")
@@ -377,6 +334,11 @@ const commands = [
           "View current campaign, bag, Omen, Act, and Check status."
         )
     )
+
+
+    // --------------------------------------------------
+    // /gm act
+    // --------------------------------------------------
 
     .addSubcommand(subcommand =>
       subcommand
@@ -414,6 +376,11 @@ const commands = [
         )
     )
 
+
+    // --------------------------------------------------
+    // /gm scene-next
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("scene-next")
@@ -421,6 +388,11 @@ const commands = [
           "Advance to the next Scene."
         )
     )
+
+
+    // --------------------------------------------------
+    // /gm omen-add
+    // --------------------------------------------------
 
     .addSubcommand(subcommand =>
       subcommand
@@ -430,6 +402,11 @@ const commands = [
         )
     )
 
+
+    // --------------------------------------------------
+    // /gm omen-remove
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("omen-remove")
@@ -437,6 +414,11 @@ const commands = [
           "Return one Omen from the bag to the Host pool."
         )
     )
+
+
+    // --------------------------------------------------
+    // /gm story-size
+    // --------------------------------------------------
 
     .addSubcommand(subcommand =>
       subcommand
@@ -457,139 +439,16 @@ const commands = [
         )
     )
 
+
+    // --------------------------------------------------
+    // /gm cancel-check
+    // --------------------------------------------------
+
     .addSubcommand(subcommand =>
       subcommand
         .setName("cancel-check")
         .setDescription(
           "Cancel the pending Check and restore temporary resources."
-        )
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("strain-add")
-        .setDescription(
-          "Add Strain to one of a character's Aspects."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "Character receiving the Strain."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("aspect")
-            .setDescription(
-              "Core or Story Aspect receiving the Strain."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
-        )
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("strain-remove")
-        .setDescription(
-          "Remove Strain from one of a character's Aspects."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "Character whose Strain will be removed."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("aspect")
-            .setDescription(
-              "Core or Story Aspect losing the Strain."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
-        )
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("wound-add")
-        .setDescription(
-          "Manually give a character one Wound."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "Character receiving the Wound."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
-        )
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("wound-remove")
-        .setDescription(
-          "Manually remove one Wound from a character."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "Character whose Wound will be removed."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
-        )
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("revive")
-        .setDescription(
-          "Reactivate a character who died or succumbed to despair."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "Character to reactivate."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
-        )
-    )
-
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName("perk-reset")
-        .setDescription(
-          "Reset a character's spent Perk usage."
-        )
-
-        .addStringOption(option =>
-          option
-            .setName("character")
-            .setDescription(
-              "Character whose Perk usage will be reset."
-            )
-            .setRequired(true)
-            .setMaxLength(120)
         )
     )
 
@@ -631,8 +490,7 @@ async function deployCommands() {
       ),
 
       {
-        body:
-          commands
+        body: commands
       }
 
     );
@@ -642,14 +500,12 @@ async function deployCommands() {
       "Successfully registered Discord commands."
     );
 
-
     console.log(
       "Available commands:"
     );
 
     console.log("  /ping");
     console.log("  /game create");
-
     console.log("  /character create");
     console.log("  /character edit");
     console.log("  /character import");
@@ -658,12 +514,7 @@ async function deployCommands() {
     console.log("  /character assign");
     console.log("  /character unassign");
     console.log("  /character mine");
-
     console.log("  /check");
-
-    console.log("  /perk use");
-    console.log("  /perk status");
-
     console.log("  /gm status");
     console.log("  /gm act");
     console.log("  /gm scene-next");
@@ -671,12 +522,6 @@ async function deployCommands() {
     console.log("  /gm omen-remove");
     console.log("  /gm story-size");
     console.log("  /gm cancel-check");
-    console.log("  /gm strain-add");
-    console.log("  /gm strain-remove");
-    console.log("  /gm wound-add");
-    console.log("  /gm wound-remove");
-    console.log("  /gm revive");
-    console.log("  /gm perk-reset");
 
   }
 
@@ -686,7 +531,6 @@ async function deployCommands() {
       "Failed to register Discord commands:"
     );
 
-
     console.error(
       error
     );
@@ -695,19 +539,5 @@ async function deployCommands() {
 
 }
 
-// ====================================================
-// Exports / direct execution
-// ====================================================
 
-module.exports = {
-  commands
-};
-
-
-if (
-  require.main === module
-) {
-
-  deployCommands();
-
-}
+deployCommands();

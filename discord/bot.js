@@ -121,6 +121,19 @@ client.on(
     try {
 
       if (
+        interaction.isAutocomplete()
+      ) {
+
+        await handleAutocomplete(
+          interaction
+        );
+
+        return;
+
+      }
+
+
+      if (
         interaction.isChatInputCommand()
       ) {
 
@@ -214,6 +227,35 @@ client.on(
       );
 
 
+      if (
+        interaction.isAutocomplete()
+      ) {
+
+        try {
+
+          await interaction.respond(
+            []
+          );
+
+        }
+
+        catch (autocompleteReplyError) {
+
+          console.error(
+            "Could not send autocomplete fallback:"
+          );
+
+          console.error(
+            autocompleteReplyError
+          );
+
+        }
+
+        return;
+
+      }
+
+
       await sendInteractionError(
         interaction,
         "☠ Something went wrong while processing that interaction."
@@ -223,6 +265,285 @@ client.on(
 
   }
 );
+
+
+// ====================================================
+// Autocomplete
+// ====================================================
+
+function normalizeAutocompleteText(
+  value
+) {
+
+  return String(
+    value ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+}
+
+
+function autocompleteChoiceName(
+  value,
+  fallback = "Option"
+) {
+
+  const text =
+    String(
+      value ||
+      fallback
+    ).trim() ||
+    fallback;
+
+
+  if (
+    text.length <=
+    100
+  ) {
+
+    return text;
+
+  }
+
+
+  return (
+    `${text.slice(0, 97)}...`
+  );
+
+}
+
+
+function autocompleteValueIsSafe(
+  value
+) {
+
+  const text =
+    String(
+      value ||
+      ""
+    );
+
+
+  return (
+    text.length > 0 &&
+    text.length <= 100
+  );
+
+}
+
+
+async function handleAutocomplete(
+  interaction
+) {
+
+  if (
+    interaction.commandName !==
+    "check"
+  ) {
+
+    await interaction.respond(
+      []
+    );
+
+    return;
+
+  }
+
+
+  if (
+    !interaction.guildId ||
+    !interaction.channelId
+  ) {
+
+    await interaction.respond(
+      []
+    );
+
+    return;
+
+  }
+
+
+  const campaign =
+    getCampaign(
+      interaction.guildId,
+      interaction.channelId
+    );
+
+
+  if (!campaign) {
+
+    await interaction.respond(
+      []
+    );
+
+    return;
+
+  }
+
+
+  const focused =
+    interaction.options.getFocused(
+      true
+    );
+
+
+  const searchText =
+    normalizeAutocompleteText(
+      focused.value
+    );
+
+
+  if (
+    focused.name ===
+    "character"
+  ) {
+
+    const choices =
+      (
+        campaign.gameState.characters ||
+        []
+      )
+        .filter(
+          character =>
+            autocompleteValueIsSafe(
+              character.name
+            )
+        )
+        .filter(
+          character =>
+            !searchText ||
+            normalizeAutocompleteText(
+              character.name
+            ).includes(
+              searchText
+            )
+        )
+        .slice(
+          0,
+          25
+        )
+        .map(
+          character => ({
+
+            name:
+              autocompleteChoiceName(
+                character.active === false
+                  ? `${character.name} (Inactive)`
+                  : character.name
+              ),
+
+            value:
+              character.name
+
+          })
+        );
+
+
+    await interaction.respond(
+      choices
+    );
+
+    return;
+
+  }
+
+
+  if (
+    focused.name ===
+    "aspect"
+  ) {
+
+    const selectedCharacterName =
+      interaction.options.getString(
+        "character"
+      );
+
+
+    if (!selectedCharacterName) {
+
+      await interaction.respond(
+        []
+      );
+
+      return;
+
+    }
+
+
+    const character =
+      findCharacterByName(
+        campaign,
+        selectedCharacterName
+      );
+
+
+    if (!character) {
+
+      await interaction.respond(
+        []
+      );
+
+      return;
+
+    }
+
+
+    const choices =
+      (
+        character.aspects ||
+        []
+      )
+        .filter(
+          aspect =>
+            autocompleteValueIsSafe(
+              aspect.name
+            )
+        )
+        .filter(
+          aspect =>
+            !searchText ||
+            normalizeAutocompleteText(
+              aspect.name
+            ).includes(
+              searchText
+            )
+        )
+        .slice(
+          0,
+          25
+        )
+        .map(
+          aspect => ({
+
+            name:
+              autocompleteChoiceName(
+                `${aspect.name} — ${aspect.rating}`
+              ),
+
+            value:
+              aspect.name
+
+          })
+        );
+
+
+    await interaction.respond(
+      choices
+    );
+
+    return;
+
+  }
+
+
+  await interaction.respond(
+    []
+  );
+
+}
 
 
 // ====================================================
@@ -3616,4 +3937,4 @@ client.login(
     );
 
   }
-);
+);   
